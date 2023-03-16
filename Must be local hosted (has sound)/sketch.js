@@ -9,7 +9,7 @@ var gameCharX, gameCharY,
 	gameCharWorldX, carrotScore,
 	gameCharSpeed, lives, dogScore, maxLives,
 	totalCarrotScore, totalDogScore, maxPossibleCarrotScore,
-	 maxPossibleDogScore;
+	maxPossibleDogScore;
 
 //game positioning variables
 var floorPosY, scrollPos;
@@ -37,6 +37,7 @@ var victoryCount;
 var jumpSound, itemSound,
 	nextLevelSound, deathSound,
 	gameoverSound, projectileDeathSound,
+	menuButtonSound,
 	themeMusic, finalBossMusic,
 	allMusicOff, allSoundOff;
 
@@ -84,6 +85,9 @@ var userInputDisabled;
 //the flagpole variable that moves the flagpole up
 var flagRaiser;
 
+//the seasons that we use to change the games season
+var winter, spring, summer, fall;
+
 
 //we preload all of our sounds
 function preload() {
@@ -96,6 +100,7 @@ function preload() {
 	projectileDeathSound = loadSound('sounds/projectiledeath.mp3');
 	themeMusic = loadSound('sounds/themeMusic.mp3');
 	finalBossMusic = loadSound('sounds/finalBossMusic.mp3');
+	menuButtonSound = loadSound('sounds/menu-click.mp3')
 	jumpSound.setVolume(1);
 	finalBossMusic.setVolume(0.3);
 	themeMusic.setVolume(0.3);
@@ -107,7 +112,7 @@ function setup() {
 	userInputDisabled = true;
 
 	//user starts on level 1
-	currentLevel = 2;
+	currentLevel = 1;
 
 	//the TOTAL carrot and dog score will get set to the max possible scores at the bottom of this document
 	totalCarrotScore = totalDogScore = 0;
@@ -266,16 +271,15 @@ function draw() {
 		renderFlagPole();
 
 		//We loop through all of our enemies and call all the functions needed
-		var currentEnemy;
-		for (let i = 0; i < enemies.length; i++) {
-			currentEnemy = enemies[i];
-			currentEnemy.seesPlayer();
-			currentEnemy.drawEnemy();
-			currentEnemy.killedPlayer('square');
-			currentEnemy.drawProjectiles();
-			currentEnemy.killEnemy();
-			if (currentEnemy.isDead) {
-				enemies.splice(i, 1);
+		//the enemies.entries simply allows us to get the index, as well as the enemy
+		for (const [i, enemy] of enemies.entries()) {
+			enemy.seesPlayer();
+			enemy.drawEnemy();
+			enemy.killedPlayer('square');
+			enemy.drawProjectiles();
+			enemy.killEnemy();
+			if (enemy.isDead) {
+				enemies.splice(i, 1)
 			}
 		}
 
@@ -289,28 +293,27 @@ function draw() {
 			text(`Carrots: ${totalCarrotScore + carrotScore}/${maxPossibleCarrotScore} `, 400, 250, 400, 400);
 			text(`Dogs saved: ${totalDogScore}/${maxPossibleDogScore} `, 400, 300, 400, 400);
 			fill(255, 0, 0)
-			text('High-score',980,50,400,400)
-			text('Name: John-Marco Tasillo',900,100,400,400)
-			text('Total time: 183',900,150,400,400)
-			text('Carrots: 34/34',900,200,400,400)
-			text('Dogs saved: 10/10',900,250,400,400)
-			text('Difficulty: Hard',900,300,400,400)
+			text('High-score', 980, 50, 400, 400)
+			text('Name: John-Marco Tasillo', 900, 100, 400, 400)
+			text('Total time: 183', 900, 150, 400, 400)
+			text('Carrots: 34/34', 900, 200, 400, 400)
+			text('Dogs saved: 10/10', 900, 250, 400, 400)
+			text('Difficulty: Hard', 900, 300, 400, 400)
 		}
-			
-		if (currentLevel == 5 && finalBoss) {finalBoss.activateFinalBoss()}
+
+		if (currentLevel == 5 && finalBoss) { finalBoss.activateFinalBoss() }
 		//Screen scrolling ends here anything past this pop statement will remain locked on the screen
 		pop();
 
 		//please note, this has intentionally been noot connected with the if statement above.
 		//thisis because it MUST be after the pop() so it sticks to the players screen
-		if(currentLevel != 6)
-		{
+		if (currentLevel != 6) {
 			//if the level isn't 6 we draw the gamescore
 			drawGameScore()
 		}
 		//if its level 5 and the finalBoss is alive we activate the final boss...
-		
-		
+
+
 		//and we draw the game character
 		drawGameChar();
 
@@ -330,14 +333,13 @@ function draw() {
 
 			//play our funny victory animation
 			victoryDance();
-		
+
 			//once the flagpole has raised, we can call level completed
-			if(flagpole.isRaised || finalBossKilled)
-			{
+			if (flagpole.isRaised || finalBossKilled) {
 				//we call levelcompleted(this will not work until the flag has been raised, so it will not work instantly)
 				levelCompleted();
 			}
-			
+
 			return;
 		}
 		else {
@@ -374,9 +376,9 @@ function draw() {
 				isFalling = false;
 			}
 
-			// Small bug fix using this, which just checks if im on ONE platform.
-			// Other solutions tend to check if im on EVERY platform, so edit with care
-			else if (!platforms.map((platform) => platform.onPlatform).every((platform) => platform == false)) {
+			// when the player is on any platform (when any platforms .onPlatform is set to true)
+			//this else if statement is true
+			else if (!platforms.every(platform => platform.onPlatform == false)) {
 				//if we are on a platform, we cannot be jumping, therefore we set it to false
 				//we also cant possibly be falling either, so we set that to false aswell
 				isJumping = false;
@@ -432,9 +434,8 @@ function draw() {
 
 
 	}
-}//MAIN DRAW FUNCTION ENDS HERE
-
-
+}
+//MAIN DRAW FUNCTION ENDS HERE
 
 // ---------------------//
 // Key control functions//
@@ -447,7 +448,7 @@ const falling = () => gameCharY += jumpSpeed * min((distCharJumpMax / maxJump), 
 
 //if the character exceeds their jump height, we set isJumping to false, as they must fall now.
 //if they haven't reached their max jump height yet, we continue to increase their y coords towards their jump height
-const jump = ()=> distCharJumpMax < 10 ? isJumping = false : gameCharY -= jumpSpeed * max((distCharJumpMax / maxJump), 0.10);
+const jump = () => distCharJumpMax < 10 ? isJumping = false : gameCharY -= jumpSpeed * max((distCharJumpMax / maxJump), 0.10);
 
 function keyPressed() {
 	//if the users input is NOT disabled, we allow keystrokes
@@ -518,24 +519,22 @@ function keyPressed() {
 			}
 		}
 		//if the player isn't dead, allow movement keystrokes
-		if (!isDead)
-		{
+		if (!isDead) {
 			//keycode 65 = A
-			if (keyCode == 65){ isLeft = true; }
+			if (keyCode == 65) { isLeft = true; }
 
 			//keycode 68 = D
-			if (keyCode == 68){ isRight = true; }
+			if (keyCode == 68) { isRight = true; }
 
 			//if the user clicks W, and they aren't falling, and aren't jumping, we allow them to jump
 			//THIS CODE PREVENTS DOUBLE JUMP, VERY IMPORTANT!
 			if (keyCode == 87 && !isFalling && !isJumping) {
 				//the jump noise, as long as sounds aren't off in the esc menu
-				if(!allSoundOff)
-				{
+				if (!allSoundOff) {
 					jumpSound.play();
 
 				}
-			
+
 				//the variable which, when true, starts the jump physics and everything else required.
 				isJumping = true;
 
@@ -546,27 +545,25 @@ function keyPressed() {
 	}
 }
 
-function mouseReleased()
-{
-	if(gamePaused)
-	{
+function mouseReleased() {
+	if (gamePaused) {
 		//restart button
-		if(dist(mouseX, mouseY, 330, 350) < 25)
-		{
+		if (dist(mouseX, mouseY, 330, 350) < 25) {
 			location.reload();
 		}
 		//music toggle button
-		if(dist(mouseX, mouseY, 530, 350) < 25)
-		{
+		if (dist(mouseX, mouseY, 530, 350) < 25) {
 			musicOff();
 			allMusicOff = !allMusicOff;
-			drawPauseButtons()
+			drawPauseButtons();
+			menuButtonSound.play();
 		}
 		//all sounds off toggle
-		if(dist(mouseX, mouseY, 730, 350) < 25)
-		{
-			allSoundOff = !allSoundOff
-			drawPauseButtons()
+		if (dist(mouseX, mouseY, 730, 350) < 25) {
+			allSoundOff = !allSoundOff;
+			drawPauseButtons();
+			menuButtonSound.play();
+
 		}
 	}
 
@@ -659,59 +656,59 @@ const forwardAnimation = () => {
 const forwardFallingAnimation = () => {
 	noStroke();
 	strokeWeight(1);
-		fill(0);
-		quad(gameCharX - 10, gameCharY - 48,
-			gameCharX + 10, gameCharY - 48,
-			gameCharX + 15, gameCharY - 15,
-			gameCharX - 15, gameCharY - 15);
-		//face w skin colour
-		fill(222, 184, 135);
-		ellipse(gameCharX, gameCharY - 40, 20, 20);
-		//eye whites
-		fill(255);
-		ellipse(gameCharX - 4, gameCharY - 40, 5, 4);
-		ellipse(gameCharX + 4, gameCharY - 40, 5, 4);
-		// eye colour 
-		fill(96, 49, 1);
-		ellipse(gameCharX - 4, gameCharY - 40, 2, 2);
-		ellipse(gameCharX + 4, gameCharY - 40, 2, 2);
-		//lips
-		fill(255, 0, 0, 150);
-		ellipse(gameCharX, gameCharY - 34, 3, 2);
-		//arms
-		stroke(71, 205, 209);
-		fill(91, 225, 229);
-		rect(gameCharX - 13, gameCharY - 42, 5, 18);
-		rect(gameCharX + 8, gameCharY - 42, 5, 18);
-		noStroke();
-		//hands
-		fill(222, 184, 135);
-		rect(gameCharX - 12, gameCharY - 44, 3, 2);
-		rect(gameCharX + 9, gameCharY - 44, 3, 2);
-		//top of hair
-		fill(0);
-		ellipse(gameCharX, gameCharY - 48, 20, 5);
-		//airfores left and right respectively
-		fill(255);
-		rect(gameCharX - 7, gameCharY, 5, 3);
-		rect(gameCharX + 2, gameCharY, 5, 3);
-		fill(91, 225, 229);
-		//torso
-		rect(gameCharX - 8, gameCharY - 30, 16, 30);
-		//triangle cut in scrubs
-		fill(222, 184, 135);
-		triangle(gameCharX - 5, gameCharY - 30,
-			gameCharX + 5, gameCharY - 30,
-			gameCharX, gameCharY - 22);
-		//pants lines
-		strokeWeight(1);
-		stroke(71, 205, 209);
-		noFill();
-		//pants
-		rect(gameCharX - 8, gameCharY - 13, 8, 13);
-		rect(gameCharX, gameCharY - 13, 8, 13);
-		rect(gameCharX + 4, gameCharY - 24, 3, 3);
-		noStroke();
+	fill(0);
+	quad(gameCharX - 10, gameCharY - 48,
+		gameCharX + 10, gameCharY - 48,
+		gameCharX + 15, gameCharY - 15,
+		gameCharX - 15, gameCharY - 15);
+	//face w skin colour
+	fill(222, 184, 135);
+	ellipse(gameCharX, gameCharY - 40, 20, 20);
+	//eye whites
+	fill(255);
+	ellipse(gameCharX - 4, gameCharY - 40, 5, 4);
+	ellipse(gameCharX + 4, gameCharY - 40, 5, 4);
+	// eye colour 
+	fill(96, 49, 1);
+	ellipse(gameCharX - 4, gameCharY - 40, 2, 2);
+	ellipse(gameCharX + 4, gameCharY - 40, 2, 2);
+	//lips
+	fill(255, 0, 0, 150);
+	ellipse(gameCharX, gameCharY - 34, 3, 2);
+	//arms
+	stroke(71, 205, 209);
+	fill(91, 225, 229);
+	rect(gameCharX - 13, gameCharY - 42, 5, 18);
+	rect(gameCharX + 8, gameCharY - 42, 5, 18);
+	noStroke();
+	//hands
+	fill(222, 184, 135);
+	rect(gameCharX - 12, gameCharY - 44, 3, 2);
+	rect(gameCharX + 9, gameCharY - 44, 3, 2);
+	//top of hair
+	fill(0);
+	ellipse(gameCharX, gameCharY - 48, 20, 5);
+	//airfores left and right respectively
+	fill(255);
+	rect(gameCharX - 7, gameCharY, 5, 3);
+	rect(gameCharX + 2, gameCharY, 5, 3);
+	fill(91, 225, 229);
+	//torso
+	rect(gameCharX - 8, gameCharY - 30, 16, 30);
+	//triangle cut in scrubs
+	fill(222, 184, 135);
+	triangle(gameCharX - 5, gameCharY - 30,
+		gameCharX + 5, gameCharY - 30,
+		gameCharX, gameCharY - 22);
+	//pants lines
+	strokeWeight(1);
+	stroke(71, 205, 209);
+	noFill();
+	//pants
+	rect(gameCharX - 8, gameCharY - 13, 8, 13);
+	rect(gameCharX, gameCharY - 13, 8, 13);
+	rect(gameCharX + 4, gameCharY - 24, 3, 3);
+	noStroke();
 }
 //the animation for when the player is facing the left
 const leftAnimation = () => {
@@ -780,62 +777,62 @@ const leftAnimation = () => {
 		gameCharX + 10, gameCharY - 48,
 		gameCharX + 12, gameCharY - 15,
 		gameCharX, gameCharY - 15);
-	
+
 }
 //the animation for when the player is facing the left and falling
 const leftFallingAnimation = () => {
 	noStroke();
 	strokeWeight(1);
-		fill(222, 184, 135);
-		ellipse(gameCharX, gameCharY - 40, 20, 20);
-		//eye whites 
-		fill(255);
-		ellipse(gameCharX - 4, gameCharY - 40, 5, 4);
-		// eye colour 
-		fill(96, 49, 1);
-		ellipse(gameCharX - 5, gameCharY - 40, 2, 2);
-		//lips 
-		fill(255, 0, 0, 150);
-		ellipse(gameCharX - 4, gameCharY - 34, 3, 2);
-		//top of hair
-		fill(0);
-		ellipse(gameCharX, gameCharY - 48, 20, 5);
-		//shoe colour
-		fill(255);
-		//left shoe
-		rect(gameCharX - 10, gameCharY, 6, 3);
-		//right shoe
-		rect(gameCharX + 4, gameCharY, 6, 3);
-		//scrubs color
-		fill(91, 225, 229);
-		stroke(71, 205, 209);
-		//right leg
-		quad(gameCharX + 4, gameCharY - 14,
-			gameCharX - 2, gameCharY - 10,
-			gameCharX + 3, gameCharY + 2,
-			gameCharX + 10, gameCharY - 1);
-		//left leg
-		quad(gameCharX - 4, gameCharY - 14,
-			gameCharX + 2, gameCharY - 10,
-			gameCharX - 3, gameCharY + 2,
-			gameCharX - 10, gameCharY - 1);
-		//torso
-		rect(gameCharX - 6, gameCharY - 30, 12, 20);
-		//back hair
-		noStroke();
-		fill(0);
-		quad(gameCharX + 3, gameCharY - 48,
-			gameCharX + 10, gameCharY - 48,
-			gameCharX + 12, gameCharY - 15,
-			gameCharX + 5, gameCharY - 15);
-		//hand
-		fill(222, 184, 135);
-		rect(gameCharX - 1, gameCharY - 48, 5, 3);
-		//arm
-		fill(91, 225, 229);
-		stroke(71, 205, 209);
-		rect(gameCharX - 1, gameCharY - 45, 5, 18);
-		noStroke();
+	fill(222, 184, 135);
+	ellipse(gameCharX, gameCharY - 40, 20, 20);
+	//eye whites 
+	fill(255);
+	ellipse(gameCharX - 4, gameCharY - 40, 5, 4);
+	// eye colour 
+	fill(96, 49, 1);
+	ellipse(gameCharX - 5, gameCharY - 40, 2, 2);
+	//lips 
+	fill(255, 0, 0, 150);
+	ellipse(gameCharX - 4, gameCharY - 34, 3, 2);
+	//top of hair
+	fill(0);
+	ellipse(gameCharX, gameCharY - 48, 20, 5);
+	//shoe colour
+	fill(255);
+	//left shoe
+	rect(gameCharX - 10, gameCharY, 6, 3);
+	//right shoe
+	rect(gameCharX + 4, gameCharY, 6, 3);
+	//scrubs color
+	fill(91, 225, 229);
+	stroke(71, 205, 209);
+	//right leg
+	quad(gameCharX + 4, gameCharY - 14,
+		gameCharX - 2, gameCharY - 10,
+		gameCharX + 3, gameCharY + 2,
+		gameCharX + 10, gameCharY - 1);
+	//left leg
+	quad(gameCharX - 4, gameCharY - 14,
+		gameCharX + 2, gameCharY - 10,
+		gameCharX - 3, gameCharY + 2,
+		gameCharX - 10, gameCharY - 1);
+	//torso
+	rect(gameCharX - 6, gameCharY - 30, 12, 20);
+	//back hair
+	noStroke();
+	fill(0);
+	quad(gameCharX + 3, gameCharY - 48,
+		gameCharX + 10, gameCharY - 48,
+		gameCharX + 12, gameCharY - 15,
+		gameCharX + 5, gameCharY - 15);
+	//hand
+	fill(222, 184, 135);
+	rect(gameCharX - 1, gameCharY - 48, 5, 3);
+	//arm
+	fill(91, 225, 229);
+	stroke(71, 205, 209);
+	rect(gameCharX - 1, gameCharY - 45, 5, 18);
+	noStroke();
 }
 //the animation for when the player is facing the right
 const rightAnimation = () => {
@@ -966,7 +963,7 @@ const rightFallingAnimation = () => {
 
 // Function to draw the game character.
 const drawGameChar = () => {
-	switch(true){
+	switch (true) {
 		//if the user is clicking A(left) AND D(right)...
 		case isLeft && isRight:
 			//we check if the player is falling or not, and play the appropiate animation
@@ -989,6 +986,7 @@ const drawGameChar = () => {
 		case isFalling || isDead:
 			forwardFallingAnimation();
 			break;
+
 		default:
 			forwardAnimation();
 			break;
@@ -1003,8 +1001,7 @@ const drawGameChar = () => {
 // Function to draw cloud objects.
 
 const drawClouds = () => {
-	for(const cloud of clouds)
-	{
+	for (const cloud of clouds) {
 		push();
 		translate(cloud.xPos, cloud.yPos);
 		scale(cloud.size);
@@ -1035,7 +1032,7 @@ const drawClouds = () => {
 }
 // Function to draw mountains objects.
 
-const drawMountains = () =>{
+const drawMountains = () => {
 	for (const mountain of mountains) {
 		fill(228, 215, 209);
 		//back mountain
@@ -1208,11 +1205,9 @@ const checkCollectable = collectable => {
 	if (collectable.xPos - 18 < gameCharWorldX + 15 &&
 		collectable.xPos + 18 > gameCharWorldX - 15 &&
 		collectable.yPos - 84 < gameCharY + 5 &&
-		collectable.yPos + 20 > gameCharY - 50
-	) {
+		collectable.yPos + 20 > gameCharY - 50) {
 		//we play the itemSound as long as sounds aren't off
-		if(!allSoundOff)
-		{
+		if (!allSoundOff) {
 			itemSound.play();
 		}
 
@@ -1227,12 +1222,12 @@ const checkCollectable = collectable => {
 
 //this function simply draws the gamescore at the top left
 const drawGameScore = () => {
-		fill(255);
-		textSize(35);
-		text(`Time:${time}`, 30, 30);
-		text(`Level: ${currentLevel}`, 30, 70);
-		text(`Carrots: ${carrotScore}`, 30, 110);
-		text(`Dogs saved: ${dogScore}`, 30, 150);
+	fill(255);
+	textSize(35);
+	text(`Time:${time}`, 30, 30);
+	text(`Level: ${currentLevel}`, 30, 70);
+	text(`Carrots: ${carrotScore}`, 30, 110);
+	text(`Dogs saved: ${dogScore}`, 30, 150);
 }
 //this function deals with altering the flagpole position when the player reaches it
 //in other words it moves the flagpole up and down
@@ -1246,16 +1241,16 @@ const renderFlagPole = () => {
 		//which will allow levelCompleted() to close the curtain
 		floorPosY - flagRaiser - 13 > gameCharY ? flagRaiser += 2 : flagpole.isRaised = true;
 
-		push()
+		push();
 		//we translate to the flagposition to allow cleaner coding, therefore the new 0 is 'flagpole.xPos'
 
-		translate(flagpole.xPos, floorPosY  - flagRaiser)
+		translate(flagpole.xPos, floorPosY - flagRaiser);
 		//if the flagpole is raised, we set the color to green, otherwise its red
 
 		flagpole.isRaised ? fill(0, 255, 0) : fill(255, 0, 0);
-		triangle(0, -60, 0,  -10,-50, -30);
-		pop()
-		
+		triangle(0, -60, 0, -10, -50, -30);
+		pop();
+
 	}
 
 	else {
@@ -1287,7 +1282,7 @@ const renderFlagPole = () => {
 	rect(flagpole.xPos + 150, floorPosY - 10, 15, 10);
 	rect(flagpole.xPos + 100, floorPosY - 10, 15, 10);
 	rect(flagpole.xPos + 90, floorPosY - 10, 15, 10); +
-	fill(80, 50, 0);
+		fill(80, 50, 0);
 	beginShape();
 	curveVertex(flagpole.xPos + 15 + 90, floorPosY - 100);
 	curveVertex(flagpole.xPos + 15 + 70, floorPosY - 85);
@@ -1328,10 +1323,9 @@ const checkFlagpole = () => {
 	//when the player reaches the flagpole...
 	if (gameCharWorldX >= flagpole.xPos &&
 		gameCharWorldX < flagpole.xPos + 10) {
-		
+
 		//we play the nextlevel sound as long as sounds aren't off
-		if(!allSoundOff)
-		{
+		if (!allSoundOff) {
 			nextLevelSound.play()
 		}
 
@@ -1339,7 +1333,7 @@ const checkFlagpole = () => {
 		flagpole.isReached = true;
 
 		//we cut player movement
-		isLeft, isRight = false, false;
+		isLeft = isRight = false
 
 		//and we set isfalling to true so we have our falling animation (aka we raise our hands because we won!)
 		isFalling = true;
@@ -1462,14 +1456,11 @@ const funAnimation = () => {
 		infinitySign(-110, 120, backdrop = false);
 	}
 	else {
-	//we draw the text for the score
+		//we draw the text for the score
 		text(`${lives}/${maxLives}`, -80, 103, 150, 150);
 	}
 	pop();
 }
-
-
-
 
 // This function closes the curtain 
 const levelCompleted = () => {
@@ -1483,7 +1474,7 @@ const levelCompleted = () => {
 
 }
 //a funny little animation of the player cheering when they win the level
-const victoryDance= () => {
+const victoryDance = () => {
 	//we set isfalling to true to start the animation
 	isFalling = true
 	//every half second we change the direction the player faces
@@ -1509,7 +1500,7 @@ const victoryDance= () => {
 }
 //this function deals with drawing and handling player lives and also with killing the player
 const checkPlayerDie = () => {
-	var i = 0
+	var i = 0;
 	//we use a do while look so that when lives are infinite we can still have it draw one face
 
 	//we DO this code
@@ -1578,7 +1569,7 @@ const checkPlatform = platform => {
 	var isPlayerOnPlatform = (gameCharWorldX > platform.xPos &&
 		gameCharWorldX < platform.xPos + platform.width &&
 		dist(0, gameCharY, 0, platform.yPos) < 5)
-	
+
 	//we set the platforms onplatform property to the result of the isPlayerOnPlatform
 	platform.onPlatform = isPlayerOnPlatform
 }
@@ -1589,8 +1580,7 @@ const deathNoise = () => {
 	//we shut off the background music
 	musicOff();
 	//and play the appropiate sound based upon how many lives are left
-	if(!allSoundOff)
-	{
+	if (!allSoundOff) {
 		lives > 1 || lives == 'infinite' ? deathSound.play() : gameoverSound.play();
 	}
 }
@@ -1745,13 +1735,12 @@ const generateTreeSpots = () => {
 			}
 		}
 		//if there is no next canyon, we will simply plant 15 trees
-		else{
+		else {
 			//we gather the coordinates of the end of the last canyon
 			let lastCanyonEndXpos = canyons[canyons.length - 1].xPos + canyons[canyons.length - 1].width;
 			//we randomize the initial first plant
 			let distanceFromLastCanyon = random(50, 400);
-			for(let i = 0; i < 15; i++)
-			{
+			for (let i = 0; i < 15; i++) {
 				treesX.push(lastCanyonEndXpos + distanceFromLastCanyon);
 				//we ensure the trees are at least 200 apart, and at most 400 apart, but randomize where they plant
 				distanceFromLastCanyon += random(200, 400)
@@ -1760,20 +1749,18 @@ const generateTreeSpots = () => {
 	}
 }
 //simply draw the game pause screen. (the screen when you click esc)
-const gamePauseScreen = () => 
-{
-		fill(0, 0, 0, 200);
-		rect(0, 0, width, height);
-		textSize(30);
-		fill(255);
-		text('Game paused', 450, 150);
-		drawPauseButtons();
-		musicOff();
+const gamePauseScreen = () => {
+	fill(0, 0, 0, 200);
+	rect(0, 0, width, height);
+	textSize(30);
+	fill(255);
+	text('Game paused', 450, 150);
+	drawPauseButtons();
+	musicOff();
 }
 //simply draws the game paused screen, we use this as a function so we can update the screen easily
 //even after we call noLoop() to pause the game
-const drawPauseButtons = () => 
-{
+const drawPauseButtons = () => {
 	fill(255)
 	//text('Press R to restart the game from the beginning, or ESC to unpause', 300, 400, 500, 300);
 	textSize(20);
@@ -1798,7 +1785,7 @@ const drawPauseButtons = () =>
 //basically we use its projectile width and height methods as well as xpos and speed
 //we do this so we do not have to copy the properties in our enemy class
 class Enemy extends projectile {
-	constructor(speed = 1.5, xPos = 800, projectileWidth = 50, projectileHeight = 50, vision = 250,projectileLifespan = 500) {
+	constructor(speed = 1.5, xPos = 800, projectileWidth = 50, projectileHeight = 50, vision = 250, projectileLifespan = 500) {
 		super(speed, xPos, projectileWidth, projectileHeight)
 		//the max projectiles that can be fired by tehe enemy
 		this.maxProjectiles = 5;
@@ -1811,7 +1798,7 @@ class Enemy extends projectile {
 		//if the enemy is currently engaging the player in a fight 
 		this.attackingPlayer = false;
 		//the projectiles lifespan, that is, how long it takes them to die when shoot
-		this.projectilesLifespan = projectileLifespan ;
+		this.projectilesLifespan = projectileLifespan;
 		//when the enemy hits a canyon this becomes true, and it turns the other way,
 		//and does not turn back until some time has passed, without this the enemy may glitch through the canyon.
 		this.movementLocked = false;
@@ -1835,7 +1822,7 @@ class Enemy extends projectile {
 			//we increase its timeAlive
 			projectile.timeAlive += 1;
 			//terminate projectiles whos time alive is greater then the projectile lifespan limit
-			if (projectile.timeAlive > this.projectilesLifespan ) {
+			if (projectile.timeAlive > this.projectilesLifespan) {
 				this.projectiles.splice([index], 1);
 			}
 			//if there is at least one projectile...
@@ -1850,34 +1837,33 @@ class Enemy extends projectile {
 	//here we move our enemy...
 	moveEnemy() {
 		//we check every canyon in canyons...
-			for (const canyon of canyons) {
+		for (const canyon of canyons) {
 
-				//the +80 and +85 are vital for visual accuracy, DO NOT REMOVE!
-				//if the enemy is about to fall into a canyon... and its movement is not locked...
-				if (this.xPos <= canyon.xPos + canyon.width + 85 &&
-					this.xPos + this.width > canyon.xPos + 80 && 
-					!this.movementLocked){
+			//the +80 and +85 are vital for visual accuracy, DO NOT REMOVE!
+			//if the enemy is about to fall into a canyon... and its movement is not locked...
+			if (this.xPos <= canyon.xPos + canyon.width + 85 &&
+				this.xPos + this.width > canyon.xPos + 80 &&
+				!this.movementLocked) {
 
-					//we flip its speed (switching its direction)
-					this.speed *= -1;
+				//we flip its speed (switching its direction)
+				this.speed *= -1;
 
-					//we lock the movement aswell, to fix a bug where the enemy glitches over the canyon...
-					//basically when the enemy reaches a canyon we have it walk unbothered away from it 
-					this.movementLocked = true;
-				}
-
-				//if its position is locked we want there to be at least some delay before it tries to 
-				//move that way again. Although we aren't determining the frame count at this time, this should provide
-				//enough delay so the enemy doesn't glitch onto the canyon
-				if(this.movementLocked && 
-				frameCount / 120 == parseInt(frameCount / 120)) 
-				{
-					//we unlock its movement after a delay
-					this.movementLocked = false;
-				}
+				//we lock the movement aswell, to fix a bug where the enemy glitches over the canyon...
+				//basically when the enemy reaches a canyon we have it walk unbothered away from it 
+				this.movementLocked = true;
 			}
-			//we move every enemys xpos by its speed..
-			this.xPos += this.speed;
+
+			//if its position is locked we want there to be at least some delay before it tries to 
+			//move that way again. Although we aren't determining the frame count at this time, this should provide
+			//enough delay so the enemy doesn't glitch onto the canyon
+			if (this.movementLocked &&
+				frameCount / 120 == parseInt(frameCount / 120)) {
+				//we unlock its movement after a delay
+				this.movementLocked = false;
+			}
+		}
+		//we move every enemys xpos by its speed..
+		this.xPos += this.speed;
 	}
 	//here we determine if the player killed the enemy...
 	killEnemy() {
@@ -1885,8 +1871,7 @@ class Enemy extends projectile {
 		if (gameCharWorldX > this.xPos &&
 			gameCharWorldX < this.xPos + this.width &&
 			gameCharY < this.yPos - 2 &&
-			gameCharY > this.yPos - 14)
-			{
+			gameCharY > this.yPos - 14) {
 			//we set its isdead property to true,
 			this.isDead = true;
 			//play a death sound as long as sounds aren't off
@@ -1904,16 +1889,14 @@ class Enemy extends projectile {
 	drawEnemy() {
 
 		//if the enemy is attacking the player...
-		if(this.attackingPlayer)
-		{
+		if (this.attackingPlayer) {
 			//we simply make the enemy face the player regardless of where its moving
 			this.enemyRightAnimation = gameCharWorldX < this.xPos + this.width / 2 ? false : true;
 			//and make its eyes red
 			this.eyeWhites = color(255, 0, 0);
 		}
 		//otherwise if the enemy is not attacking the player...
-		else
-		{
+		else {
 			//we allow its animation to be chosen by the direction it is going
 			this.enemyRightAnimation = this.speed > 0 ? true : false;
 			//and we make its eyes white.
@@ -1973,17 +1956,8 @@ class Enemy extends projectile {
 			//note the weird sguigly lines do exactly the same thing as Math.floor(),
 			//its just a fancier shorthand...
 			if (~~random(2) == 1) {
-				var projectileSpeed;
 				//if the enemy is facing left we shoot a projectile to the left (aka the negative speed)
-				if(direction == 'left')
-				{
-					projectileSpeed = -2;
-				}				
-				//otherwise we shoot it to the right
-				else
-				{
-					projectileSpeed = 2;
-				}
+				let projectileSpeed = direction == 'left' ? -2 : 2
 
 				//we create a new projectile with the projectile speed above and the same xpos as the enemy.
 				//Its width and height get set to half of the enemies width and height
@@ -1995,7 +1969,7 @@ class Enemy extends projectile {
 	//here we check if the enemy can see the player, and if so we call its attackPlayer function
 	seesPlayer() {
 		//if the distance between the enemy and the player is less then its vision
-		if (dist(this.xPos + this.width/2, 0, gameCharWorldX, 0) < this.vision) {
+		if (dist(this.xPos + this.width / 2, 0, gameCharWorldX, 0) < this.vision) {
 			//we set the attackingplayer attribute to true
 			this.attackingPlayer = true;
 
@@ -2003,7 +1977,7 @@ class Enemy extends projectile {
 			if (gameCharWorldX > this.xPos) {
 				//this means the player is on the right & its movement is unlocked, 
 				//so move the enemy the left(if the enemy isn't already moving that way)
-				if (this.speed > 0  && !this.movementLocked) {this.speed *= -1;}
+				if (this.speed > 0 && !this.movementLocked) { this.speed *= -1; }
 
 				//The player is on right, attack right
 				this.attackPlayer('right');
@@ -2013,7 +1987,7 @@ class Enemy extends projectile {
 
 				//this means the player is on the left & its movement is unlocked, 
 				//so move the enemy the right(if the enemy isn't already moving that way)
-				if (this.speed < 0  && !this.movementLocked) {this.speed *= -1;}
+				if (this.speed < 0 && !this.movementLocked) { this.speed *= -1; }
 
 				//The player is on left, attack left
 				this.attackPlayer('left');
@@ -2038,7 +2012,7 @@ function startGame() {
 	gameCharY = floorPosY;
 
 	//we set our characters run speed (game was designed at speed 4)
-	gameCharSpeed = 30;
+	gameCharSpeed = 4;
 
 	// Variable to control the background scrolling.
 	scrollPos = 0;
@@ -2056,10 +2030,9 @@ function startGame() {
 	//GAME WAS DESIGNED WITH A JUMPSPEED OF 8
 	jumpSpeed = 8;
 	//GAME WAS DESIGNED WITH A MAXJUMP OF 100
-	maxJump = 2000;
+	maxJump = 100;
 	//Our variables to work our jump f8unction(to measure distances)
-	jumpStartY = distCharJumpMax =  0;
-
+	jumpStartY = distCharJumpMax = 0;
 
 	// our variable to kill theplayer if  they were hit by a projectile
 	projectileKilledPlayer = false;
@@ -2075,7 +2048,7 @@ function startGame() {
 	multHorizontal = x = 0;
 
 	//main theme music stays off by default, as well as our variables in the esc menu to control music on and off
-	themeMusicOn = finalEnemyMusicOn =false;
+	themeMusicOn = finalEnemyMusicOn = false;
 
 	//our infinity function variables must be set to zero
 	cosinf = sininf = 0;
@@ -2085,6 +2058,9 @@ function startGame() {
 
 	//if the final boss is killed this should be true, otherwise always false
 	finalBossKilled = false;
+
+	//we default the seaons to false, and for every level we change one season to the one we want to show
+	winter = spring = summer = fall = false;
 
 	// here we store all the level specficic data.
 	levels = {
@@ -2101,7 +2077,7 @@ function startGame() {
 				[
 					{ xPos: 1400, yPos: 460, isFound: false },
 				],
-				//a platforms array containing platforms objects
+			//a platforms array containing platforms objects
 			platforms:
 				[
 					{ xPos: 2800, yPos: floorPosY - 50, width: 100, onPlatform: false },
@@ -2110,22 +2086,22 @@ function startGame() {
 					{ xPos: 3400, yPos: floorPosY - 150, width: 100, onPlatform: false },
 					{ xPos: 3600, yPos: floorPosY - 180, width: 100, onPlatform: false },
 				],
-				//a cutscene array for cutscene objects
+			//a cutscene array for cutscene objects
 			cutscenes:
 				[
 					{ xPos: 500, text: "Use A and S to move, ESC to pause, and press C to quit dialogue.", hasTriggered: false },
-					{ xPos: 1400, text: "This is a carrot... obviously. Collect it to add to your score!.", hasTriggered: false },
+					{ xPos: 1400, text: "This is a carrot... obviously. Collect it to add to your score!", hasTriggered: false },
 					{ xPos: 1800, text: "This is a canyon, if you fall into it you die! Jump over it using the 'W' key.", hasTriggered: false },
 					{ xPos: 2800, text: "These are platforms, you can jump on them to cross the canyon!", hasTriggered: false },
 					{ xPos: 5000, text: "This is the flagpole, jump on it to finish level one.", hasTriggered: false }
 				],
-				//a flagpole object
+			//a flagpole object
 			flagpole: {
 				xPos: 5000,
 				isReached: false,
 				isRaised: false
 			},
-				//and an array if we decide we want enemies on the level.
+			//and an array if we decide we want enemies on the level.
 			enemies: [
 			]
 
@@ -2448,17 +2424,15 @@ function startGame() {
 	for (const level in levels) {
 		//and count every collectable, and add it to our maxPossibleCarrotScore
 		maxPossibleCarrotScore += levels[level].collectables.length;
+
 		//and also count every enemy, and add it to our maxPossibleCarrotScore
 		maxPossibleDogScore += levels[level].enemies.length;
 	}
 
-	//we set our game objects to equal those cooresponding to the current level
-	canyons = levels[currentLevel].canyons;
-	collectables = levels[currentLevel].collectables;
-	platforms = levels[currentLevel].platforms
-	cutscenes = levels[currentLevel].cutscenes;
-	flagpole = levels[currentLevel].flagpole;
-	enemies = levels[currentLevel].enemies;
+	//we set our game objects to equal those coresponding to the current level
+	[canyons, collectables,
+		platforms, cutscenes,
+		flagpole, enemies] = Object.values(levels[currentLevel]);
 	totalEnemies = enemies.length;
 
 	//we initialize our cloud and mountain array..
@@ -2476,10 +2450,8 @@ function startGame() {
 	//and fill it with trees naturally generated between canyons
 	generateTreeSpots()
 
-
 	//only when its level 5 do we load in the final boss object
-	if(currentLevel == 5)
-	{
+	if (currentLevel == 5) {
 		//this is a awkward place to have the final boss, but its the only place that makes sense...
 		//you cant put this outside of setup as we use createVector... so unfortunately we have to throw it in either here,
 		// or directly into startgame...
@@ -2489,7 +2461,7 @@ function startGame() {
 			height: 300,
 			xPos: 11300,
 			yPos: floorPosY - 300, //must subtract the finalboss height from the ypos, for it to remain on the ground
-	
+
 			//maximum homing tennis balls that can be alive at a time
 			maxTennisBalls: 2,
 			//the array that holds all the homing tennis balls
@@ -2588,8 +2560,7 @@ function startGame() {
 					//we set finalBossKilled to true, therefore ending the level just like if a flagpole was reached
 					finalBossKilled = true;
 					//we play the next level sound as long as all sounds aren't off
-					if(!allSoundOff)
-					{
+					if (!allSoundOff) {
 						nextLevelSound.play();
 					}
 					//we kill the boss by setting it to null, 
@@ -2633,7 +2604,6 @@ function startGame() {
 								//the tennis balls time alive, which starts at zero
 								timeAlive: 0,
 							})
-	
 					}
 				}
 			},
@@ -2641,7 +2611,7 @@ function startGame() {
 			aimHomingTennisBall() {
 				this.playerLocation.x = gameCharWorldX;
 				this.playerLocation.y = gameCharY - 20;
-	
+
 			},
 			//this method moves each tennis ball and updates it acceleration
 			moveTennisBall(tennisBall) {
@@ -2649,65 +2619,64 @@ function startGame() {
 				var accelerationIncrease = 0.2
 				//we update the acceleration of the ball x/60 per second
 				if (frameCount / 5 == parseInt(frameCount / 5)) {
-						//if the distance between the ball and the player is greater then 100 we give a big increase
-						//to acceleration. If we didn't do this, tennis balls would often orbit around the player so
-						//this is a minor bug fix and a big increase in accuracy for the finalBoss
-						if (dist(tennisBall.coords.x, tennisBall.coords.y, gameCharWorldX, gameCharY) > 100) {
-							accelerationIncrease = 1;
-						}
-	
-						//if ball is to right of player
-						if (tennisBall.coords.x > this.playerLocation.x) {
-							//we accelerate it towards the left
-							tennisBall.accelerationX = max(tennisBall.accelerationX - accelerationIncrease, -this.tennisBallMaxAcceleration);
-						}
-						//if the ball is to the left of the player
-						else if (tennisBall.coords.x < this.playerLocation.x) {
-							//we accelerate it towards the right
-							tennisBall.accelerationX = min(tennisBall.accelerationX + accelerationIncrease, this.tennisBallMaxAcceleration);
-						}
+					//if the distance between the ball and the player is greater then 100 we give a big increase
+					//to acceleration. If we didn't do this, tennis balls would often orbit around the player so
+					//this is a minor bug fix and a big increase in accuracy for the finalBoss
+					if (dist(tennisBall.coords.x, tennisBall.coords.y, gameCharWorldX, gameCharY) > 100) {
+						accelerationIncrease = 1;
+					}
 
-						//if ball is above the player
-						if (tennisBall.coords.y < this.playerLocation.y) {
-							//accerlate ball down
-							tennisBall.accelerationY = min(tennisBall.accelerationY + accelerationIncrease, this.tennisBallMaxAcceleration);
-	
+					//if ball is to right of player
+					if (tennisBall.coords.x > this.playerLocation.x) {
+						//we accelerate it towards the left
+						tennisBall.accelerationX = max(tennisBall.accelerationX - accelerationIncrease, -this.tennisBallMaxAcceleration);
+					}
+					//if the ball is to the left of the player
+					else if (tennisBall.coords.x < this.playerLocation.x) {
+						//we accelerate it towards the right
+						tennisBall.accelerationX = min(tennisBall.accelerationX + accelerationIncrease, this.tennisBallMaxAcceleration);
+					}
+
+					//if ball is above the player
+					if (tennisBall.coords.y < this.playerLocation.y) {
+						//accerlate ball down
+						tennisBall.accelerationY = min(tennisBall.accelerationY + accelerationIncrease, this.tennisBallMaxAcceleration);
+
 						//if the ball is underneath the player
-						}
-						else if (tennisBall.coords.y > this.playerLocation.y) {
-							//we accelerate ball up
-							tennisBall.accelerationY = max(tennisBall.accelerationY - accelerationIncrease, -this.tennisBallMaxAcceleration);
-						}
-	
+					}
+					else if (tennisBall.coords.y > this.playerLocation.y) {
+						//we accelerate ball up
+						tennisBall.accelerationY = max(tennisBall.accelerationY - accelerationIncrease, -this.tennisBallMaxAcceleration);
+					}
+
 				}
 				//we then add the acceleration to the x and y coords of the tennis ball(this is the homing missle effect)
 				tennisBall.coords.x += tennisBall.accelerationX;
 				tennisBall.coords.y += tennisBall.accelerationY;
 			},
 			//this method draws the tennis ball
-			drawTennisBall(tennisBall){
-					// we draw the tennis ball with the coords and with its size
-					noStroke();
-					fill(223, 255, 79);
-					ellipse(tennisBall.coords.x, tennisBall.coords.y, tennisBall.size, tennisBall.size);
-				
+			drawTennisBall(tennisBall) {
+				// we draw the tennis ball with the coords and with its size
+				noStroke();
+				fill(223, 255, 79);
+				ellipse(tennisBall.coords.x, tennisBall.coords.y, tennisBall.size, tennisBall.size);
+
 			},
 			//this method deals with killing old tennis balls
-			killHomingTennisBall(){
+			killHomingTennisBall() {
 				//if the oldest tennis ball          (we only check the oldest one as they expire in order from oldest -> newest)
 				// is older then the lifespan limit...
 				if (this.tennisBalls[0].timeAlive > this.tennisBallsLifespan) {
-				//we remove it from the tennis ball array (aka we kill it from existence in the game)
+					//we remove it from the tennis ball array (aka we kill it from existence in the game)
 					this.tennisBalls.shift();
 				}
 			},
 			//this method checks if a tennis ball has killed a player
 			checkIfKilledPlayer(tennisBall) {
-					if (dist(tennisBall.coords.x, tennisBall.coords.y, this.playerLocation.x, this.playerLocation.y) < tennisBall.size) 
-					{
-						projectileKilledPlayer = true;
-					}
-				
+				if (dist(tennisBall.coords.x, tennisBall.coords.y, this.playerLocation.x, this.playerLocation.y) < tennisBall.size) {
+					projectileKilledPlayer = true;
+				}
+
 			},
 			//the main method that makes the final boss work
 			activateFinalBoss() {
@@ -2720,9 +2689,8 @@ function startGame() {
 				//as long as their is one alive tennis ball...
 				if (this.tennisBalls.length > 0) {
 					//for each alive tennis ball...
-					for(const tennisBall of this.tennisBalls)
-					{
-						 //we updates its movement, 
+					for (const tennisBall of this.tennisBalls) {
+						//we updates its movement, 
 						this.moveTennisBall(tennisBall);
 						//we draw its new position,
 						this.drawTennisBall(tennisBall);
@@ -2739,5 +2707,5 @@ function startGame() {
 			}
 		}
 	}
-	
+
 }
