@@ -280,7 +280,7 @@ function draw() {
 			fill(255, 0, 0)
 			text('High-score', 980, 50, 400, 400)
 			text('Name: John-Marco Tasillo', 900, 100, 400, 400)
-			text('Total time: 183', 900, 150, 400, 400)
+			text('Total time: 196', 900, 150, 400, 400)
 			text('Carrots: 34/34', 900, 200, 400, 400)
 			text('Dogs saved: 10/10', 900, 250, 400, 400)
 			text('Difficulty: Hard', 900, 300, 400, 400)
