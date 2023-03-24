@@ -22,13 +22,10 @@ var isLeft, isRight,
 var isJumping, jumpStartY,
 	jumpSpeed, distCharJumpMax, maxJump;
 
-//tree's x position array
-var treesX
-
 //scenery variables
 var clouds, mountains,
 	canyons, collectables,
-	platforms;
+	platforms, trees;
 
 //this function deals with the funny player animation when they beat a level (how they move left and right by themselves)
 var victoryCount;
@@ -36,10 +33,12 @@ var victoryCount;
 //all sounds
 var jumpSound, itemSound,
 	nextLevelSound, deathSound,
-	gameoverSound, projectileDeathSound,
+	gameoverSound, enemyDeathSound,
 	menuButtonSound,
-	themeMusic, finalBossMusic,
-	allMusicOff, allSoundOff;
+	stormSound, allMusicOff, allSoundOff;
+
+//our different music variables
+var winterMusic, springMusic, summerMusic, fallMusic, finalBossMusic, themeMusic;
 
 //projectile variables (when set to true user will die)
 var projectileKilledPlayer;
@@ -76,7 +75,7 @@ let difficultySelection;
 var finalBoss, finalBossKilled;
 
 //booleans for controling musics on or off state
-var themeMusicOn, finalBossMusicOn;
+var themeMusicStarted;
 
 //when true, we disable user input. 
 //we use this to ensure sounds load in time
@@ -85,29 +84,43 @@ var userInputDisabled;
 //the flagpole variable that moves the flagpole up
 var flagRaiser;
 
-//the seasons that we use to change the games season
-var winter, spring, summer, fall;
+//the seasonal variables that change the design of the game based upon the season
+var season, leafColor, skyColor, groundColor, cloudColor
 
+//we use this to generate snow for when the seaosn is winter
+var generateSnow;
+
+//when this is true we allow lightning to strike
+var lightningHasStruck;
 
 //we preload all of our sounds
-function preload() {
+function preload() 
+{
+	//our sounds
 	soundFormats('mp3', 'ogg');
 	jumpSound = loadSound('sounds/jump.mp3');
 	itemSound = loadSound('sounds/item.mp3');
-	nextLevelSound = loadSound('sounds/nextlevel.mp3');
+	nextLevelSound = loadSound('sounds/nextLevel.mp3');
 	deathSound = loadSound('sounds/death.mp3');
 	gameoverSound = loadSound('sounds/gameover.mp3');
-	projectileDeathSound = loadSound('sounds/projectiledeath.mp3');
-	themeMusic = loadSound('sounds/themeMusic.mp3');
+	enemyDeathSound = loadSound('sounds/enemyDeath.mp3');
+	menuButtonSound = loadSound('sounds/menuButton.mp3');
+	stormSound = loadSound('sounds/storm.mp3');
+	jumpSound.setVolume(0.2);
+	stormSound.setVolume(0.2);
+
+
+	//our music variables
+	springMusic = loadSound('sounds/springMusic.mp3');
+	summerMusic = loadSound('sounds/summerMusic.mp3');
+	fallMusic = loadSound('sounds/fallMusic.mp3');
+	winterMusic = loadSound('sounds/winterMusic.mp3');
 	finalBossMusic = loadSound('sounds/finalBossMusic.mp3');
-	menuButtonSound = loadSound('sounds/menu-click.mp3')
-	jumpSound.setVolume(1);
-	finalBossMusic.setVolume(0.3);
-	themeMusic.setVolume(0.3);
 }
 
 //we call setup once, before draw gets looped, therefore these variables only get set once in this manner
-function setup() {
+function setup() 
+{
 	//we disable user input for now till sounds can load properly.
 	userInputDisabled = true;
 
@@ -120,9 +133,8 @@ function setup() {
 	//when this is true you see the difficulty selection screen and may select a difficulty
 	difficultySelection = true;
 
-	//these shall be stored for the entirety of the game, therefore we putt hem here. These will permanently shut music or
-	//sound off when true
-	allMusicOff = allSoundOff = false;
+	//theme music starts off by default
+	themeMusicStarted = false;
 	//our screen
 	createCanvas(1024, 576);
 
@@ -134,8 +146,6 @@ function setup() {
 
 	//we start the game with this function, this also gets called upon death
 	startGame();
-
-
 }
 //the main draw loop that gets repeated indefinetly
 function draw() {
@@ -180,42 +190,8 @@ function draw() {
 		if (frameCount / 60 == parseInt(frameCount / 60) && currentLevel != 6 && !flagpole.isReached) {
 			time += 1;
 		}
-		//If we are on the boss level (lvl 5)
-		if (currentLevel == 5) {
-			background(40); //last level we make the sky very dark
 
-			//if we are approaching the boss, and the boss music isn't on
-			//(note the !finalBossMusicOn is vital, otherwise it will be a audio deathloop)
-			//all music off is the game setting in the esc menu that shuts all music off
-			if (gameCharWorldX > 10000 && !finalBossMusicOn && !allMusicOff) {
-				//musicOff shuts off allmusic
-				musicOff();
-
-				//we loop our final boss music
-				finalBossMusic.loop();
-
-				//and we turn finalbossmusicon so this doesn't infinitely loop
-				finalBossMusicOn = true;
-			}
-
-		}
-		//if the level isn't 5, then we can have a normal sky color
-		else {
-			background(120, 140, 160); // fill the sky color
-
-		}
-		//if theme music and final boss music are off, we turn theme music on
-		//all music off is the game setting in the esc menu that shuts all music off
-		if (!themeMusicOn && !finalBossMusicOn && !allMusicOff) {
-			//this musicOff just ensures that we shut off any music (this is a bug fix)
-			musicOff()
-
-			//we loop our theme music
-			themeMusic.loop();
-
-			//and we set thememusic to on to prevent an infinite loop
-			themeMusicOn = true;
-		}
+		background(skyColor); // fill the sky color
 
 		//we check if there is a cutscene to be displayed
 		checkCutscene();
@@ -223,11 +199,9 @@ function draw() {
 		//this updates player lives and deals with the player lives at the top right of the screen
 		checkPlayerDie();
 
-
 		// draw some green ground
-		fill(85, 107, 47);
+		fill(groundColor);
 		rect(0, floorPosY, width, height / 4);
-
 
 		//Screen scrolling starts here
 		push();
@@ -235,8 +209,19 @@ function draw() {
 
 		//we draw our mountains, trees
 		drawMountains();
-		drawTrees();
 		drawClouds();
+
+		//we draw the trees and activate their methods (which cause their leaves to fall...)
+		for(const tree of trees)
+		{
+			//we draw each tree
+			drawTree(tree);
+			//if its fall we do a nice fall animation having leaves fall
+			if(season == 'fall')
+			{
+				tree.activateTree();
+			}
+		}
 
 		//we have for loops for canyon, collectable and platform since they have interactable components.
 		//we draw them and also check if the player is currently interacting with each element in that given array
@@ -303,6 +288,11 @@ function draw() {
 
 		if (currentLevel == 5 && finalBoss) { finalBoss.activateFinalBoss() }
 		//Screen scrolling ends here anything past this pop statement will remain locked on the screen
+		if(season == 'winter')
+		{
+			snowGenerator.startTheSnow();
+		}
+
 		pop();
 
 		//please note, this has intentionally been noot connected with the if statement above.
@@ -311,19 +301,22 @@ function draw() {
 			//if the level isn't 6 we draw the gamescore
 			drawGameScore()
 		}
-		//if its level 5 and the finalBoss is alive we activate the final boss...
-
 
 		//and we draw the game character
 		drawGameChar();
-
+		if(season == 'boss')
+		{
+			lightningStrikeChance();
+		}
 
 		//if the users lives are under 1 (if they are dead)
 		if (lives < 1) {
 			//we show some game over text and return
 			fill(255);
+			stroke(0)
+			strokeWeight(2);
 			textSize(40);
-			text("Game over. Press 'C' to continue.", width / 2 - 290, height / 2);
+			text("Game over. Press C to continue.", width / 2 - 290, height / 2);
 			return;
 		}
 		//we periodically check if the user reaches the flagpole
@@ -409,7 +402,6 @@ function draw() {
 			//If isDead is not yet set to true, we want to call the death noise (we use this to prevent an infinite deathnoise)
 			if (!isDead) {
 				deathNoise();
-				musicOff();
 			}
 			//we stop player movement dead in its tracks when the user dies (this prevents movement after death)
 			isLeft = false;
@@ -454,29 +446,34 @@ function keyPressed() {
 	//if the users input is NOT disabled, we allow keystrokes
 	if (!userInputDisabled) {
 		//if the difficultySelection screen is present, we only allow keystrokes neccecary to choose a difficulty level
+		//we set the lives and play the starting music
 		if (difficultySelection) {
 			//if they click P, we set peaceful amount of lives
 			if (keyCode == 80) {
 				lives = maxLives = 'infinite';
 				difficultySelection = false;
+				musicOn();
 			}
 
 			//otherwise, if they click E, we set easy amount of lives
 			else if (keyCode == 69) {
 				lives = maxLives = 10;
 				difficultySelection = false;
+				musicOn();
 			}
 
 			//otherwise, if they click M, we set medium amount of lives
 			else if (keyCode == 77) {
 				lives = maxLives = 5;
 				difficultySelection = false;
+				musicOn();
 			}
 
 			//otherwise, if they click H, we set hard amount of lives
 			else if (keyCode == 72) {
 				lives = maxLives = 1;
 				difficultySelection = false;
+				musicOn();
 			}
 		}
 
@@ -484,7 +481,7 @@ function keyPressed() {
 		if (keyCode == 27 && !cutSceneText && !difficultySelection) {
 			//we toggle game paused true and false on every esc click
 			gamePaused = !gamePaused;
-
+			!gamePaused ? musicOn() : musicOff();
 			//we flip between paused and unpaused states using noLoop and loop
 			gamePaused ? noLoop() : loop();
 		}
@@ -512,6 +509,9 @@ function keyPressed() {
 
 				//we then start the next level by calling startGame()
 				startGame();
+
+				//we also turn the music on
+				musicOn();
 			}
 
 			else if (isDead && lives < 1) {
@@ -553,7 +553,6 @@ function mouseReleased() {
 		}
 		//music toggle button
 		if (dist(mouseX, mouseY, 530, 350) < 25) {
-			musicOff();
 			allMusicOff = !allMusicOff;
 			drawPauseButtons();
 			menuButtonSound.play();
@@ -963,35 +962,21 @@ const rightFallingAnimation = () => {
 
 // Function to draw the game character.
 const drawGameChar = () => {
-	switch (true) {
-		//if the user is clicking A(left) AND D(right)...
-		case isLeft && isRight:
-			//we check if the player is falling or not, and play the appropiate animation
-			isFalling ? forwardFallingAnimation() : forwardAnimation();
-			break;
+		//if the user is clicking A(left) AND D(right)... We check if the user is falling or not and play the appropiate animation
+		if(isLeft && isRight) isFalling ? forwardFallingAnimation() : forwardAnimation();
 
-		//if the user clicks D(right)
-		case isRight:
-			//we check if the player is falling or not, and play the appropiate animation
-			isFalling ? rightFallingAnimation() : rightAnimation();
-			break;
+		//if the user clicks D(right) we check if the player is falling or not, and play the appropiate animation
+		else if(isRight) isFalling ? rightFallingAnimation() : rightAnimation();
 
-		//if the user clicks A(right)
-		case isLeft:
-			//we check if the player is falling or not, and play the appropiate animation
-			isFalling ? leftFallingAnimation() : leftAnimation();
-			break;
+		//if the user clicks A(left) we check if the player is falling or not, and play the appropiate animation
+		else if(isLeft) isFalling ? leftFallingAnimation() : leftAnimation();
 
 		//if the player is falling or is dead
-		case isFalling || isDead:
-			forwardFallingAnimation();
-			break;
+		else if(isFalling || isDead) forwardFallingAnimation();
+		
+		//else we play the forward animation
+		else forwardAnimation();
 
-		default:
-			forwardAnimation();
-			break;
-
-	}
 }
 
 // --------------------------- //
@@ -1001,33 +986,40 @@ const drawGameChar = () => {
 // Function to draw cloud objects.
 
 const drawClouds = () => {
-	for (const cloud of clouds) {
-		push();
-		translate(cloud.xPos, cloud.yPos);
-		scale(cloud.size);
-		fill(80);
-		//cloud border color
-		stroke(90);
-		strokeWeight(8);
-		//top left
-		ellipse(200, 105, 57, 57);
-		//middle left
-		ellipse(160, 140, 60, 60);
-		// bottom curve of cloud
-		curve(227, -15, 175, 165, 280, 168, 240, 20);
-		//top right
-		ellipse(260, 100, 57, 57);
-		//middle right
-		ellipse(297, 140, 60, 60);
-		noStroke();
-		//grey middle colour 
-		ellipse(230, 140, 135, 85);
-		//lightning
-		fill(255, 255, 0);
-		quad(220, 205, 235, 205, 220, 225, 205, 225);
-		quad(218, 220, 233, 220, 218, 240, 203, 240);
-		triangle(216, 235, 231, 235, 202, 265);
-		pop();
+	//as long as we set a cloud color, we actually draw the clouds
+	if(cloudColor)
+	{
+		for (const cloud of clouds) {
+			push();
+			translate(cloud.xPos, cloud.yPos);
+			scale(cloud.size);
+			fill(cloudColor);
+			//cloud border color
+			stroke(cloudColor + 10);
+			strokeWeight(8);
+			//top left
+			ellipse(200, 105, 57, 57);
+			//middle left
+			ellipse(160, 140, 60, 60);
+			// bottom curve of cloud
+			curve(227, -15, 175, 165, 280, 168, 240, 20);
+			//top right
+			ellipse(260, 100, 57, 57);
+			//middle right
+			ellipse(297, 140, 60, 60);
+			noStroke();
+			//grey middle colour 
+			ellipse(230, 140, 135, 85);
+			//lightning
+			if(season == 'boss' && lightningHasStruck)
+			{
+				fill(255, 255, 0);
+				quad(220, 205, 235, 205, 220, 225, 205, 225);
+				quad(218, 220, 233, 220, 218, 240, 203, 240);
+				triangle(216, 235, 231, 235, 202, 265);
+			}
+			pop();
+		}
 	}
 }
 // Function to draw mountains objects.
@@ -1063,32 +1055,32 @@ const drawMountains = () => {
 }
 
 // Function to draw trees objects.
-const drawTrees = () => {
-	for (const treeX of treesX) {
+const drawTree = tree => {
 		noStroke();
 		fill(98, 78, 44);
 		//the stump
-		rect(treeX + 50, 322, 50, 110);
-		//leaves for the tree
-		fill(72, 94, 82);
-		ellipse(treeX + 20, 312, 70, 70);
-		ellipse(treeX + 70, 322, 70, 70);
-		ellipse(treeX + 120, 312, 70, 70);
-		ellipse(treeX + 140, 272, 70, 70);
+		rect(tree.xPos + 50, 322, 50, 110);
+		//leaves for the tree, if there is no leaf color, then it is fall, thus we use the trees distinct fall color
+		//otherwise we use the universal seasonal color 'leafColor'
+		fill(leafColor ? leafColor : tree.fallColor);
+		ellipse(tree.xPos + 20, 312, 70, 70);
+		ellipse(tree.xPos + 70, 322, 70, 70);
+		ellipse(tree.xPos + 120, 312, 70, 70);
+		ellipse(tree.xPos + 140, 272, 70, 70);
 		//center leaf tree
-		ellipse(treeX, 272, 70, 70);
-		ellipse(treeX + 110, 232, 70, 70);
-		ellipse(treeX + 30, 232, 70, 70);
-		ellipse(treeX + 70, 212, 70, 70);
-		ellipse(treeX + 70, 262, 100, 100);
+		ellipse(tree.xPos, 272, 70, 70);
+		ellipse(tree.xPos + 110, 232, 70, 70);
+		ellipse(tree.xPos + 30, 232, 70, 70);
+		ellipse(tree.xPos + 70, 212, 70, 70);
+		ellipse(tree.xPos + 70, 262, 100, 100);
 		//apple colour
-		fill(153, 0, 0);
+		//if the season is spring we show the apples, otherwise we make them transparent to hide them
+		fill(season == 'spring' ? [153, 0, 0] : [0, 0, 0, 0]);
 		strokeWeight(2);
-		stroke(125, 0, 0);
-		ellipse(treeX + 110, 242, 20, 20);
-		ellipse(treeX + 90, 314, 20, 20);
-		ellipse(treeX + 30, 283, 20, 20);
-	}
+		stroke(season == 'spring' ? [125, 0, 0] : [0, 0, 0, 0]);
+		ellipse(tree.xPos + 110, 242, 20, 20);
+		ellipse(tree.xPos + 90, 314, 20, 20);
+		ellipse(tree.xPos + 30, 283, 20, 20);
 }
 
 // --------------------------------- //
@@ -1128,7 +1120,7 @@ const drawCanyon = canyon => {
 		canyon.xPos + canyon.width + 150, 600,
 		canyon.xPos + canyon.width + 300, 575);
 	//edges of the canyon
-	fill(85, 107, 47);
+	fill(groundColor);
 	//grass patch right
 	//bottom left, bottom right
 	quad(canyon.xPos + canyon.width + 200, 580,
@@ -1223,6 +1215,8 @@ const checkCollectable = collectable => {
 //this function simply draws the gamescore at the top left
 const drawGameScore = () => {
 	fill(255);
+	stroke(0)
+	strokeWeight(2)
 	textSize(35);
 	text(`Time:${time}`, 30, 30);
 	text(`Level: ${currentLevel}`, 30, 70);
@@ -1358,15 +1352,14 @@ const funAnimation = () => {
 
 	//whilst multhorizontal is under 1100 we keep adding to it, as well as to x
 	if (multHorizontal < 1100) {
-		x += 0.1
-		multHorizontal += 4
+		x += 0.1;
+		multHorizontal += 4;
 	}
 
 	//the text that shows after the curtains are closed
 	textSize(30);
 	fill(255);
 	text(`Level ${currentLevel} complete. Press C to continue.`, 250, 150, 800, 200);
-
 	//draw carrot image
 	push();
 	translate(275, 300); // move image
@@ -1446,7 +1439,7 @@ const funAnimation = () => {
 	ellipse(-30, 26, 3, 2);
 	//top of hair
 	fill(0);
-	ellipse(-30, +11, 20, 5);
+	ellipse(-30, 11, 20, 5);
 	pop()
 	textSize(30);
 	fill(255);
@@ -1550,6 +1543,8 @@ const checkPlayerDie = () => {
 		if (lives > 0 || lives == 'infinite') {
 			//start the game
 			startGame();
+			//and we turn the music on
+			musicOn();
 		}
 	}
 
@@ -1565,9 +1560,10 @@ const drawPlatform = platform => {
 
 //this function checks if the player is on the platform if it is we set that platforms property to true;
 const checkPlatform = platform => {
+
 	//if the player is on the platform, this should be true, otherwise false
-	var isPlayerOnPlatform = (gameCharWorldX > platform.xPos &&
-		gameCharWorldX < platform.xPos + platform.width &&
+	var isPlayerOnPlatform = (
+		gameCharWorldX + 15 > platform.xPos && gameCharWorldX - 15 < platform.xPos + platform.width &&
 		dist(0, gameCharY, 0, platform.yPos) < 5)
 
 	//we set the platforms onplatform property to the result of the isPlayerOnPlatform
@@ -1587,11 +1583,37 @@ const deathNoise = () => {
 
 //simply turn all music off
 const musicOff = () => {
-	finalBossMusicOn = false;
-	themeMusicOn = false;
-	finalBossMusic.stop();
-	themeMusic.stop();
-
+	themeMusic.stop()
+}
+//play music dependant upon the season
+const musicOn = () => {
+		switch(season)
+		{
+			case 'spring':
+				themeMusic = springMusic;
+				break;
+			case 'summer':
+				themeMusic = summerMusic;
+				break;
+			case 'fall':
+				themeMusic = fallMusic;
+				break;
+			case 'winter':
+				themeMusic = winterMusic;
+				break;
+			case 'boss':
+				themeMusic = finalBossMusic;
+				break;
+			default:
+				themeMusic = null;
+		}
+		//as long as theme music isn't undefined, and all music isn't off we set the musics
+		//volume and loop it
+		if(themeMusic && !allMusicOff)
+		{
+			themeMusic.setVolume(0.2);
+			themeMusic.loop();
+		}
 }
 
 //check if there is a cutscene to show the user
@@ -1617,42 +1639,6 @@ const triggerCutscene = () => {
 	text(cutSceneText, 700, 200, 300, 300);
 }
 
-//the projectile class, this is a super important class, and we use it for all the tennis balls (except homing ones)
-//We also extxend this class for our boss class taking some of its attributes
-class projectile {
-	constructor(speed, xPos, projectileWidth, projectileHeight) {
-		this.xPos = xPos;
-		this.yPos = floorPosY - projectileHeight;
-		this.width = projectileWidth;
-		this.height = projectileHeight;
-		this.speed = speed;
-		this.timeAlive = 0
-	}
-	//simply draw the projectile
-	drawProjectile() {
-		ellipse(this.xPos, this.yPos, this.width)
-	}
-	//here we detect if a projectile has collided with the player...
-	killedPlayer(hitboxShape) {
-		//if the hitbox of the projectile is a square
-		if (hitboxShape === 'square') {
-			//we check the hitbox using a square collision detection if statement
-			if (gameCharWorldX > this.xPos &&
-				gameCharWorldX < this.xPos + this.width &&
-				gameCharY > this.yPos) {
-				projectileKilledPlayer = true;
-			}
-		}
-		//if the hitbox of the projectile is an ellipse
-		else if (hitboxShape === 'ellipse') {
-			//we check the hitbox using a ellipse collision detection if statement
-			if (dist(this.xPos, this.yPos, gameCharWorldX, gameCharY - 10) < this.width) {
-				projectileKilledPlayer = true;
-			}
-		}
-
-	}
-}
 
 //this just draws the difficulty options when first loading the game or restarting it..
 const chooseDifficulty = () => {
@@ -1712,7 +1698,11 @@ const infinitySign = (xPos, yPos, backdrop) => {
 
 }
 //we determine where canyons are and strategically place trees between them
-const generateTreeSpots = () => {
+const generateTrees = () => {
+	//we define our fall colors
+	let fallColors = [[143, 187, 9],[214, 231, 21],[250, 143, 4],[246, 77, 13]];
+	//we make a small function to return a random fall color
+	const randomFallColor = () => fallColors[~~random(0, 4)]
 	//we gather the canyons and  plant trees between them with some randomness
 	for (let i = 0; i < canyons.length; i++) {
 		//only when there is a next canyon, do we need to check when to stop, otherwise we can plant x amount of trees
@@ -1726,8 +1716,8 @@ const generateTreeSpots = () => {
 
 			//whilst there is at lease 100 pixels of distance from the next canyon and our tree, we keep planting trees.
 			while (canyons[i + 1].xPos - (treePosFromCanyon + canyonCoverage) > 100) {
-				//We plant the tree (by pushing its xpos in treesX)
-				treesX.push(canyonCoverage + treePosFromCanyon);
+				//We plant the tree (by pushing its xpos and fallcolor in trees)
+				trees.push(new tree(canyonCoverage + treePosFromCanyon, randomFallColor()));
 
 				//and increase our treepos, therefore placing distance between the trees
 				// (REMOVING THIS RESULTS IN AN INFINITE LOOP!)
@@ -1741,7 +1731,7 @@ const generateTreeSpots = () => {
 			//we randomize the initial first plant
 			let distanceFromLastCanyon = random(50, 400);
 			for (let i = 0; i < 15; i++) {
-				treesX.push(lastCanyonEndXpos + distanceFromLastCanyon);
+				trees.push(new tree(lastCanyonEndXpos + distanceFromLastCanyon,  randomFallColor()));
 				//we ensure the trees are at least 200 apart, and at most 400 apart, but randomize where they plant
 				distanceFromLastCanyon += random(200, 400)
 			}
@@ -1777,9 +1767,290 @@ const drawPauseButtons = () => {
 	ellipse(730, 350, 50, 50);
 	text('Sounds Toggle', 670, 300)
 }
+var strikeColor = 0
+const lightningStrikeChance = () => {
+	if(frameCount / 120 == parseInt(frameCount / 120))
+	{
+		if(~~random(1,4) == 1)
+		{
+			//strike lightning
+			lightningStrike();
+		}
+	}
+	fill(255, 255, 255, strikeColor);
+	rect(0, 0, width, height);
+	strikeColor--;
+	strikeColor = max(strikeColor, 0);
+}
+const lightningStrike = () => {
+
+	lightningHasStruck = true;
+	stormSound.play();
+	setTimeout(() => {
+		strikeColor = 255;
+		lightningHasStruck = false;
+	}, 400);
+}
 
 
 
+//sets the corresponding season to the level
+const seasonHandler = () => {
+	//we assign each level with a season
+	switch(currentLevel)
+	{
+		case 1:
+			season = 'spring';
+			break;
+		case 2:
+			season = 'summer';
+			break;
+		case 3:
+			season = 'fall';
+			break;
+		case 4:
+			season = 'winter';
+			break;
+		case 5:
+			season = 'boss';
+			break;
+
+		default:
+			season = 'spring'
+			break;
+	}
+
+	//we then check each season and apply the colors accordingly.
+	//this may seem wasteful, however it helps with readability and editability later on.
+	//please note, cloud color must be a singular number or undefined, otherwise the clouds 'stroke' wont look correct.
+	if(season == 'spring')
+	{
+		leafColor = color(120, 190, 150);
+		skyColor = color(135, 206, 250);
+		groundColor = color(85, 107, 47);
+		cloudColor = 255;
+	}
+	else if(season == 'summer')
+	{
+		leafColor = color(41, 124, 24);
+		skyColor = color(90, 180, 255)
+		groundColor = color(65, 90, 20);
+		cloudColor = undefined; //therefore clouds do not get drawn
+	}
+	else if(season == 'fall')
+	{
+		leafColor = undefined //when leafcolor is undefined, we show the trees indepedant fallColor instead (this is in drawTree())
+		skyColor = color(135, 206, 250);
+		groundColor = color(152, 150, 77);
+		cloudColor = 255;
+	}
+	else if(season == 'winter')
+	{
+		leafColor = color(255);
+		skyColor = color(169,192,203);
+		groundColor = color(240, 240, 240);
+		cloudColor = 80;
+	}
+	else if(season == 'boss')
+	{
+		leafColor = color(1, 30, 12);
+		skyColor = color(30);
+		groundColor = color(112, 84, 62);
+		cloudColor = 60;
+	}
+	
+}
+//generator snow object
+const snowGenerator = 
+{
+	//we have a max particle limit as well as an array to hold all the particles
+		particles: [],
+		maxParticles: 400,
+	generateParticles()
+	{
+		//as long as we do not exceed the particle limit we keep creating new particles
+		while(this.particles.length < this.maxParticles)
+		{
+			let newParticle = new Particle(
+			gameCharWorldX + 700,
+			random(-500, height),
+			random(-1, -6),
+			random(1, 4),
+			random(3, 7),
+			color(255, 255, 255));
+			this.particles.push(newParticle);
+		}
+			
+	},
+	//we kill particles that have gone past a certain distance from the player
+	killParticles()
+	{
+		//we loop through and check every particle
+		for(const [i, particle] of this.particles.entries())
+		{
+			//if the particle has past the height or is 700 px away from the player
+			if(particle.yPos > height || dist(particle.xPos, 0, gameCharWorldX, 0) > 700)
+			{
+				//we delete it from the array using splice
+				this.particles.splice(i, 1);	
+			}
+		}
+	},
+	//the main method that calls all the neccecary subsequent methods
+	startTheSnow()
+	{
+		this.generateParticles();
+		this.killParticles();
+		for(const particle of this.particles)
+		{
+			//we draw and update each individual particle of the particles array
+			particle.drawParticle()
+			particle.updateParticle()
+		}
+	}
+	
+
+} 
+
+//our tree class
+class tree {
+	constructor(xPos, fallColor)
+	{
+		this.xPos = xPos;
+		this.yPos = floorPosY;
+		this.fallColor = fallColor;
+		this.fallingLeaves = [];
+		this.maxLeaves = 10;
+	}
+	//we give each tree a chance to drop a leaf
+	leavesFalling()
+	{
+		//every 60 frames 
+		if(frameCount / 60 == parseInt(frameCount / 60))
+		{
+			//theres a 1/10 chance it will drop a leaf if the player is nearby
+			if(~~random(0, 2) == 1 && dist(this.xPos, 0, gameCharWorldX, 0) < 900 && this.fallingLeaves.length < this.maxLeaves)
+			{
+				this.fallingLeaves.push(
+					createVector(
+					random(this.xPos, this.xPos + 150),
+					 this.yPos - 100
+					 )
+					)
+			}
+		}
+	}
+	//we draw each leaf
+	drawLeaf(leaf)
+	{
+		strokeWeight(2)
+		//flatmap basically maps all elements and then creates a new array... we use this so we can easily modify 
+		//all the elements and reduce their value
+		stroke(this.fallColor.flatMap(colorNum => colorNum - 30));
+		fill(this.fallColor);
+		ellipse(leaf.x, leaf.y, 10, 5);
+	}
+	//we make each leaf fall until it has reached the ground
+	 updateLeaf(leaf)
+	{
+		if(leaf.y < floorPosY-2.5)
+		{
+			leaf.y++;
+		}
+	}
+	//if the tree has dropped its maxleaves, we clear the leaves and start again
+	manageLeaves()
+	{
+		if(this.fallingLeaves.length == this.maxLeaves)
+		{
+			this.fallingLeaves.length = 0;
+		}
+	}
+
+	//we activate each tree
+	activateTree()
+	{
+		//we allow the falling of leaves.
+		this.leavesFalling()
+		//as long as their is leaves we update the leaves and draw them.
+		if(this.fallingLeaves.length > 0)
+		{
+			//we check if there is the max leaves on the ground periodically, if so we clear them
+			this.manageLeaves()
+			for(const leaf of this.fallingLeaves)
+			{
+				this.drawLeaf(leaf);
+				this.updateLeaf(leaf);
+				
+			}
+		}
+	}
+}
+
+//the projectile class, this is a super important class, and we use it for all the tennis balls (except homing ones)
+//We also extxend this class for our boss class taking some of its attributes
+class projectile {
+	constructor(speed, xPos, projectileWidth, projectileHeight) {
+		this.xPos = xPos;
+		this.yPos = floorPosY - projectileHeight;
+		this.width = projectileWidth;
+		this.height = projectileHeight;
+		this.speed = speed;
+		this.timeAlive = 0;
+	}
+	//simply draw the projectile
+	drawProjectile() {
+		ellipse(this.xPos, this.yPos, this.width)
+	}
+	//here we detect if a projectile has collided with the player...
+	killedPlayer(hitboxShape) {
+		//if the hitbox of the projectile is a square
+		if (hitboxShape === 'square') {
+			//we check the hitbox using a square collision detection if statement
+			if (gameCharWorldX > this.xPos &&
+				gameCharWorldX < this.xPos + this.width &&
+				gameCharY > this.yPos) {
+				projectileKilledPlayer = true;
+			}
+		}
+		//if the hitbox of the projectile is an ellipse
+		else if (hitboxShape === 'ellipse') {
+			//we check the hitbox using a ellipse collision detection if statement
+			if (dist(this.xPos, this.yPos, gameCharWorldX, gameCharY - 10) < this.width) {
+				projectileKilledPlayer = true;
+			}
+		}
+
+	}
+}
+
+//we use this class to make a Particle
+class Particle
+{
+	constructor(xPos, yPos, xSpeed, ySpeed, particleSize, color)
+	{
+		this.xPos = xPos;
+		this.yPos = yPos;
+		this.xSpeed = xSpeed;
+		this.ySpeed = ySpeed;
+		this.size = particleSize;
+		this.color = color;
+	}
+	//we draw each particle individually
+	drawParticle()
+	{
+		noStroke();
+		fill(this.color);
+		ellipse(this.xPos, this.yPos, this.size, this.size);
+	}
+	//and update their position
+	updateParticle()
+	{
+		this.xPos += this.xSpeed;
+		this.yPos += this.ySpeed;
+	}
+
+}
 
 //here we EXTEND projectile, to use its properties and also its killedPlayer method
 //basically we use its projectile width and height methods as well as xpos and speed
@@ -1875,10 +2146,11 @@ class Enemy extends projectile {
 			//we set its isdead property to true,
 			this.isDead = true;
 			//play a death sound as long as sounds aren't off
-			(!allSoundOff)
+			if(!allSoundOff)
 			{
-				projectileDeathSound.play();
+				enemyDeathSound.play();
 			}
+			
 			//and increase the players dogScore
 			dogScore++;
 		}
@@ -2047,9 +2319,6 @@ function startGame() {
 	//here we set/reset our variables for the cool swirly animation after you complete a level
 	multHorizontal = x = 0;
 
-	//main theme music stays off by default, as well as our variables in the esc menu to control music on and off
-	themeMusicOn = finalEnemyMusicOn = false;
-
 	//our infinity function variables must be set to zero
 	cosinf = sininf = 0;
 
@@ -2059,8 +2328,10 @@ function startGame() {
 	//if the final boss is killed this should be true, otherwise always false
 	finalBossKilled = false;
 
-	//we default the seaons to false, and for every level we change one season to the one we want to show
-	winter = spring = summer = fall = false;
+	//when true lightning will strike and blind the player
+	lightningHasStruck = false;
+
+	seasonHandler()//updates the season to be the one corresponding to the current level
 
 	// here we store all the level specficic data.
 	levels = {
@@ -2418,6 +2689,7 @@ function startGame() {
 
 	}
 
+
 	//we set our maxPossible scores to zero, and then populate them with the data above.
 	maxPossibleCarrotScore = maxPossibleDogScore = 0;
 	//we iterate through each level in the levels array
@@ -2445,10 +2717,10 @@ function startGame() {
 	}
 
 
-	//we initialize our treesX array
-	treesX = [];
+	//we initialize our trees array
+	trees = [];
 	//and fill it with trees naturally generated between canyons
-	generateTreeSpots()
+	generateTrees()
 
 	//only when its level 5 do we load in the final boss object
 	if (currentLevel == 5) {
