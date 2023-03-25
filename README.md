@@ -7,6 +7,6 @@ Easy - 10 lives
 Medium - 3 lives
 Hard - 1 life
 
-please note, there are two versions of the game. The only difference is one has sound, and one doesn't
-I've found when testing that the sound can impact the games performance, therefore, i have decided to have a 
-soundless version for gameplay and one for sound if your computer can handle it.
+Please note there are two versions of this game and the only differences between the two are that one is soundless, and one has sound. The soundless version can be run directly in the browser, whilst the one with sound MUST BE LOCALLY HOSTED.
+
+Enjoy the game.
