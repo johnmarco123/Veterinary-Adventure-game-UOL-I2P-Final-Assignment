@@ -38,7 +38,7 @@ var jumpSound, itemSound,
 	stormSound, allMusicOff, allSoundOff;
 
 //our different music variables
-var winterMusic, springMusic, summerMusic, fallMusic, finalBossMusic, themeMusic;
+var winterMusic, springMusic, summerMusic, fallMusic, finalBossMusic, themeMusic, epicMusic;
 
 //projectile variables (when set to true user will die)
 var projectileKilledPlayer;
@@ -116,6 +116,7 @@ function preload()
 	fallMusic = loadSound('sounds/fallMusic.mp3');
 	winterMusic = loadSound('sounds/winterMusic.mp3');
 	finalBossMusic = loadSound('sounds/finalBossMusic.mp3');
+	epicMusic = loadSound('sounds/epicBeatsMusic.mp3');
 }
 
 //we call setup once, before draw gets looped, therefore these variables only get set once in this manner
@@ -279,14 +280,28 @@ function draw() {
 			text(`Dogs saved: ${totalDogScore}/${maxPossibleDogScore} `, 400, 300, 400, 400);
 			fill(255, 0, 0)
 			text('High-score', 980, 50, 400, 400)
-			text('Name: John-Marco Tasillo', 900, 100, 400, 400)
-			text('Total time: 196', 900, 150, 400, 400)
+			text('Name: CREATOR', 900, 100, 400, 400)
+			text('Total time: 195', 900, 150, 400, 400)
 			text('Carrots: 34/34', 900, 200, 400, 400)
 			text('Dogs saved: 10/10', 900, 250, 400, 400)
 			text('Difficulty: Hard', 900, 300, 400, 400)
 		}
 
-		if (currentLevel == 5 && finalBoss) { finalBoss.activateFinalBoss() }
+		//if it is level 5 and the final boss hasnt been spawned yet
+		if (currentLevel == 5 && finalBoss)
+		 {
+			//we activate the final boss
+			 finalBoss.activateFinalBoss();
+
+			 //if the player gets close to the final boss (greater then 9900)
+			 //we shut off the epic music and play the final boss music 
+			 if(themeMusic === epicMusic && gameCharWorldX > 9900)
+			 {
+				musicOff();
+				musicOn();
+			 }
+
+		 }
 		//Screen scrolling ends here anything past this pop statement will remain locked on the screen
 		if(season == 'winter')
 		{
@@ -1583,7 +1598,11 @@ const deathNoise = () => {
 
 //simply turn all music off
 const musicOff = () => {
-	themeMusic.stop()
+	if(themeMusic)
+	{
+		themeMusic.stop()
+
+	}
 }
 //play music dependant upon the season
 const musicOn = () => {
@@ -1602,7 +1621,7 @@ const musicOn = () => {
 				themeMusic = winterMusic;
 				break;
 			case 'boss':
-				themeMusic = finalBossMusic;
+				themeMusic = gameCharWorldX > 9900 ? finalBossMusic : epicMusic;
 				break;
 			default:
 				themeMusic = null;
@@ -2524,8 +2543,8 @@ function startGame() {
 					{ xPos: 2150, yPos: 100, isFound: false },
 					{ xPos: 2400, yPos: 100, isFound: false },
 					{ xPos: 2600, yPos: 100, isFound: false },
-					{ xPos: 6100, yPos: 300, isFound: false },
-					{ xPos: 6600, yPos: 300, isFound: false },
+					{ xPos: 6150, yPos: 350, isFound: false },
+					{ xPos: 6650, yPos: 350, isFound: false },
 
 				],
 			platforms:

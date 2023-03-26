@@ -81,7 +81,7 @@ function setup()
 {
 
 	//user starts on level 1
-	currentLevel = 1;
+	currentLevel = 5;
 
 	//the TOTAL carrot and dog score will get set to the max possible scores at the bottom of this document
 	totalCarrotScore = totalDogScore = 0;
@@ -344,10 +344,7 @@ function draw() {
 			if (gameCharY >= floorPosY) {
 				gameCharY += 2;
 			}
-			//If isDead is not yet set to true, we want to call the death noise (we use this to prevent an infinite deathnoise)
-			if (!isDead) {
-				deathNoise();
-			}
+
 			//we stop player movement dead in its tracks when the user dies (this prevents movement after death)
 			isLeft = false;
 			isRight = false;
