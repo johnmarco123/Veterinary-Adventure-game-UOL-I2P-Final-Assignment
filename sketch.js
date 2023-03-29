@@ -118,8 +118,6 @@ function preload()
 //we call setup once, before draw gets looped, therefore these variables only get set once in this manner
 function setup() 
 {
-
-
 	//user starts on level 1
 	currentLevel = 1;
 
@@ -145,6 +143,10 @@ function setup()
 }
 //the main draw loop that gets repeated indefinetly
 function draw() {
+	if(maxLives == 1)
+	{
+		replay = true;
+	}
 	//if the user won a level, then the curtain will close, when it is closed we...
 	if (curtainClosed) {
 		//Do a fun little animation
@@ -177,6 +179,8 @@ function draw() {
 		if (frameCount / 60 == parseInt(frameCount / 60) && currentLevel != 6 && !flagpole.isReached) {
 			time += 1;
 		}
+
+
 
 		background(skyColor); // fill the sky color
 
@@ -293,7 +297,7 @@ function draw() {
 		{
 			snowGenerator.startTheSnow();
 		}
-
+		getGameState();
 		pop();
 
 		//please note, this has intentionally been noot connected with the if statement above.
@@ -305,6 +309,8 @@ function draw() {
 
 		//and we draw the game character
 		drawGameChar();
+
+
 		if(season == 'boss')
 		{
 			lightningStrikeChance();
@@ -436,7 +442,7 @@ function draw() {
 
 //if the player is falling we want to increase their speed to reach the ground
 //as the distance between the gamecharacter and the max jump height increases, their falling velocity should too.
-//we then increase the gamechar's y coord 
+//we then increase the gamechar's yr coord 
 const falling = () => gameCharY += jumpSpeed * min((distCharJumpMax / maxJump), 0.5);
 
 //if the character exceeds their jump height, we set isJumping to false, as they must fall now.
@@ -444,6 +450,10 @@ const falling = () => gameCharY += jumpSpeed * min((distCharJumpMax / maxJump), 
 const jump = () => distCharJumpMax < 10 ? isJumping = false : gameCharY -= jumpSpeed * max((distCharJumpMax / maxJump), 0.10);
 
 function keyPressed() {
+		if(keyCode == 89)
+		{
+			output = true;
+		}
 		//if the difficultySelection screen is present, we only allow keystrokes neccecary to choose a difficulty level
 		//we set the lives and play the starting music
 		if (difficultySelection) {
@@ -468,8 +478,8 @@ function keyPressed() {
 				musicOn();
 			}
 
-			//otherwise, if they click H, we set hard amount of lives
-			else if (keyCode == 72) {
+			//otherwise, if they click S, we set speedrun amount of lives
+			else if (keyCode == 83) {
 				lives = maxLives = 1;
 				difficultySelection = false;
 				musicOn();
@@ -496,6 +506,9 @@ function keyPressed() {
 			else if (curtainClosed) {
 				//we increment the current level
 				currentLevel++;
+
+				//we use this to set the position of the 
+				currentCoords = 0;
 
 				//we add their dogs score to their total dogs score
 				totalDogScore += dogScore;
@@ -541,7 +554,8 @@ function keyPressed() {
 				jumpStartY = gameCharY;
 			}
 		}
-}
+	}
+
 
 function mouseReleased() {
 	if (gamePaused) {
@@ -580,7 +594,6 @@ function keyReleased() {
 			isRight = false;
 		}
 	}
-
 }
 
 // ------------------------------
@@ -591,389 +604,406 @@ function keyReleased() {
 //and therefore i've decided to code it in this way.
 
 //the animation for when the player is facing forward
-const forwardAnimation = () => {
+const forwardAnimation = (xPos, yPos, evil=false) => {
+	push();
+	translate(xPos, yPos);
 	noStroke();
 	strokeWeight(1);
 	//back hair
 	fill(0);
-	quad(gameCharX - 10, gameCharY - 48,
-		gameCharX + 10, gameCharY - 48,
-		gameCharX + 15, gameCharY - 15,
-		gameCharX - 15, gameCharY - 15);
+	quad( - 10,  - 48,
+		 + 10,  - 48,
+		 + 15,  - 15,
+		 - 15,  - 15);
 	//face w skin colour
 	fill(222, 184, 135);
-	ellipse(gameCharX, gameCharY - 40, 20, 20);
+	ellipse(0,  - 40, 20, 20);
 	//eye whites
 	fill(255);
-	ellipse(gameCharX - 4, gameCharY - 40, 5, 4);
-	ellipse(gameCharX + 4, gameCharY - 40, 5, 4);
+	ellipse( - 4,  - 40, 5, 4);
+	ellipse( + 4,  - 40, 5, 4);
 	// eye colour 
 	fill(96, 49, 1);
-	ellipse(gameCharX - 4, gameCharY - 40, 2, 2);
-	ellipse(gameCharX + 4, gameCharY - 40, 2, 2);
+	ellipse( - 4,  - 40, 2, 2);
+	ellipse( + 4,  - 40, 2, 2);
 	//lips
 	fill(255, 0, 0, 150);
-	ellipse(gameCharX, gameCharY - 34, 3, 2);
+	ellipse(0,  - 34, 3, 2);
 	//hands
 	fill(222, 184, 135);
-	rect(gameCharX - 12, gameCharY - 12, 3, 2.5);
-	rect(gameCharX + 9, gameCharY - 12, 3, 2.5);
+	rect( - 12,  - 12, 3, 2.5);
+	rect( + 9,  - 12, 3, 2.5);
 	//arms
-	stroke(71, 205, 209);
-	fill(91, 225, 229);
-	rect(gameCharX - 13, gameCharY - 30, 5, 18);
-	rect(gameCharX + 7, gameCharY - 30, 5, 18);
+	fill(evil ? [220, 20, 20] : [91, 225, 229]);
+	stroke(evil ? [200, 0, 0] : [71, 205, 209]);
+	rect( - 13,  - 30, 5, 18);
+	rect( + 7,  - 30, 5, 18);
 	noStroke();
 	//top of hair
 	fill(0);
-	ellipse(gameCharX, gameCharY - 48, 20, 5);
+	ellipse(0,  - 48, 20, 5);
 	//airfores left and right respectively
 	fill(255);
-	rect(gameCharX - 7, gameCharY, 5, 3);
-	rect(gameCharX + 2, gameCharY, 5, 3);
-	fill(91, 225, 229);
+	rect( - 7, 0, 5, 3);
+	rect( + 2, 0, 5, 3);
+	fill(evil ? [220, 20, 20] : [91, 225, 229]);
 	//torso
-	rect(gameCharX - 8, gameCharY - 30, 16, 30);
+	rect( - 8,  - 30, 16, 30);
 	//triangle cut in scrubs
 	fill(222, 184, 135);
-	triangle(gameCharX - 5, gameCharY - 30,
-		gameCharX + 5, gameCharY - 30,
-		gameCharX, gameCharY - 22);
+	triangle( - 5,  - 30,
+		 + 5,  - 30,
+		0,  - 22);
 	//pants lines
 	strokeWeight(1);
-	stroke(71, 205, 209);
+	stroke(evil ? [200, 0, 0] : [71, 205, 209]);
 	noFill();
 	//pants
-	rect(gameCharX - 8, gameCharY - 13, 8, 13);
-	rect(gameCharX, gameCharY - 13, 8, 13);
-	rect(gameCharX + 4, gameCharY - 24, 3, 3);
+	rect( - 8,  - 13, 8, 13);
+	rect(0,  - 13, 8, 13);
+	rect( + 4,  - 24, 3, 3);
 	noStroke();
+	pop();
 }
 //the animation for when the player is facing forward and falling
-const forwardFallingAnimation = () => {
+const forwardFallingAnimation = (xPos, yPos, evil = false) => {
+	push();
+	translate(xPos, yPos);
 	noStroke();
 	strokeWeight(1);
 	fill(0);
-	quad(gameCharX - 10, gameCharY - 48,
-		gameCharX + 10, gameCharY - 48,
-		gameCharX + 15, gameCharY - 15,
-		gameCharX - 15, gameCharY - 15);
+	quad( - 10,  - 48,
+		 + 10,  - 48,
+		 + 15,  - 15,
+		 - 15,  - 15);
 	//face w skin colour
 	fill(222, 184, 135);
-	ellipse(gameCharX, gameCharY - 40, 20, 20);
+	ellipse(0,  - 40, 20, 20);
 	//eye whites
 	fill(255);
-	ellipse(gameCharX - 4, gameCharY - 40, 5, 4);
-	ellipse(gameCharX + 4, gameCharY - 40, 5, 4);
+	ellipse( - 4,  - 40, 5, 4);
+	ellipse( + 4,  - 40, 5, 4);
 	// eye colour 
 	fill(96, 49, 1);
-	ellipse(gameCharX - 4, gameCharY - 40, 2, 2);
-	ellipse(gameCharX + 4, gameCharY - 40, 2, 2);
+	ellipse( - 4,  - 40, 2, 2);
+	ellipse( + 4,  - 40, 2, 2);
 	//lips
 	fill(255, 0, 0, 150);
-	ellipse(gameCharX, gameCharY - 34, 3, 2);
+	ellipse(0,  - 34, 3, 2);
 	//arms
-	stroke(71, 205, 209);
-	fill(91, 225, 229);
-	rect(gameCharX - 13, gameCharY - 42, 5, 18);
-	rect(gameCharX + 8, gameCharY - 42, 5, 18);
+	fill(evil ? [220, 20, 20] : [91, 225, 229]);
+	stroke(evil ? [200, 0, 0] : [71, 205, 209]);
+	rect( - 13,  - 42, 5, 18);
+	rect( + 8,  - 42, 5, 18);
 	noStroke();
 	//hands
 	fill(222, 184, 135);
-	rect(gameCharX - 12, gameCharY - 44, 3, 2);
-	rect(gameCharX + 9, gameCharY - 44, 3, 2);
+	rect( - 12,  - 44, 3, 2);
+	rect( + 9,  - 44, 3, 2);
 	//top of hair
 	fill(0);
-	ellipse(gameCharX, gameCharY - 48, 20, 5);
+	ellipse(0,  - 48, 20, 5);
 	//airfores left and right respectively
 	fill(255);
-	rect(gameCharX - 7, gameCharY, 5, 3);
-	rect(gameCharX + 2, gameCharY, 5, 3);
-	fill(91, 225, 229);
+	rect( - 7, 0, 5, 3);
+	rect( + 2, 0, 5, 3);
+	fill(evil ? [220, 20, 20] : [91, 225, 229]);
 	//torso
-	rect(gameCharX - 8, gameCharY - 30, 16, 30);
+	rect( - 8,  - 30, 16, 30);
 	//triangle cut in scrubs
 	fill(222, 184, 135);
-	triangle(gameCharX - 5, gameCharY - 30,
-		gameCharX + 5, gameCharY - 30,
-		gameCharX, gameCharY - 22);
+	triangle( - 5,  - 30,
+		 + 5,  - 30,
+		0,  - 22);
 	//pants lines
 	strokeWeight(1);
-	stroke(71, 205, 209);
+	stroke(evil ? [200, 0, 0] : [71, 205, 209]);
 	noFill();
 	//pants
-	rect(gameCharX - 8, gameCharY - 13, 8, 13);
-	rect(gameCharX, gameCharY - 13, 8, 13);
-	rect(gameCharX + 4, gameCharY - 24, 3, 3);
+	rect( - 8,  - 13, 8, 13);
+	rect(0,  - 13, 8, 13);
+	rect( + 4,  - 24, 3, 3);
 	noStroke();
+	pop();
 }
 //the animation for when the player is facing the left
-const leftAnimation = () => {
+const leftAnimation = (xPos, yPos, evil=false) => {
+	push();
+	translate(xPos, yPos);
 	noStroke();
 	strokeWeight(1);
 	fill(222, 184, 135);
-	ellipse(gameCharX, gameCharY - 40, 20, 20);
+	ellipse(0, - 40, 20, 20);
 	//eye whites 
 	fill(255);
-	ellipse(gameCharX - 4, gameCharY - 40, 5, 4);
+	ellipse(- 4, - 40, 5, 4);
 	// eye colour 
 	fill(96, 49, 1);
-	ellipse(gameCharX - 5, gameCharY - 40, 2, 2);
+	ellipse(- 5, - 40, 2, 2);
 	//lips 
 	fill(255, 0, 0, 150);
-	ellipse(gameCharX - 4, gameCharY - 34, 3, 2);
+	ellipse(- 4, - 34, 3, 2);
 	//top of hair
 	fill(0);
-	ellipse(gameCharX, gameCharY - 48, 20, 5);
+	ellipse(0, - 48, 20, 5);
 	//airfores left and right respectively
 	fill(255);
-	rect(gameCharX - 10, gameCharY, 6, 3);
-	rect(gameCharX + 4, gameCharY, 6, 3);
+	rect(- 10, 0, 6, 3);
+	rect(+ 4, 0, 6, 3);
 	//left hand
 	noStroke();
 	fill(222, 184, 135);
-	quad(gameCharX - 15, gameCharY - 18,
-		gameCharX - 13, gameCharY - 15,
-		gameCharX - 10, gameCharY - 18,
-		gameCharX - 12, gameCharY - 20);
+	quad(- 15, - 18,
+		- 13, - 15,
+		- 10, - 18,
+		- 12, - 20);
 	//right hand
-	quad(gameCharX + 15, gameCharY - 18,
-		gameCharX + 13, gameCharY - 15,
-		gameCharX + 10, gameCharY - 18,
-		gameCharX + 12, gameCharY - 20);
+	quad(+ 15, - 18,
+		+ 13, - 15,
+		+ 10, - 18,
+		+ 12, - 20);
 	//right arm
-	fill(91, 225, 229);
-	stroke(71, 205, 209);
-	quad(gameCharX, gameCharY - 30,
-		gameCharX - 3, gameCharY - 25,
-		gameCharX + 10, gameCharY - 16,
-		gameCharX + 13, gameCharY - 20);
+	fill(evil ? [220, 20, 20] : [91, 225, 229]);
+	stroke(evil ? [200, 0, 0] : [71, 205, 209]);
+	quad(0, - 30,
+		- 3, - 25,
+		+ 10, - 16,
+		+ 13, - 20);
 	//legs
-	quad(gameCharX + 4, gameCharY - 14,
-		gameCharX - 2, gameCharY - 10,
-		gameCharX + 3, gameCharY + 2,
-		gameCharX + 10, gameCharY - 1);
-	quad(gameCharX - 4, gameCharY - 14,
-		gameCharX + 2, gameCharY - 10,
-		gameCharX - 3, gameCharY + 2,
-		gameCharX - 10, gameCharY - 1);
+	quad(+ 4, - 14,
+		- 2, - 10,
+		+ 3, + 2,
+		+ 10, - 1);
+	quad(- 4, - 14,
+		+ 2, - 10,
+		- 3, + 2,
+		- 10, - 1);
 	//torso
-	rect(gameCharX - 6, gameCharY - 30, 12, 20);
+	rect(- 6, - 30, 12, 20);
 	//arms
-	stroke(71, 205, 209);
-	fill(91, 225, 229);
+	fill(evil ? [220, 20, 20] : [91, 225, 229]);
+	stroke(evil ? [200, 0, 0] : [71, 205, 209]);
 	//leftarm
-	quad(gameCharX, gameCharY - 30,
-		gameCharX + 3, gameCharY - 25,
-		gameCharX - 10, gameCharY - 16,
-		gameCharX - 13, gameCharY - 20);
+	quad(0, - 30,
+		+ 3, - 25,
+		- 10, - 16,
+		- 13, - 20);
 	//back hair
 	noStroke();
 	fill(0);
-	quad(gameCharX, gameCharY - 48,
-		gameCharX + 10, gameCharY - 48,
-		gameCharX + 12, gameCharY - 15,
-		gameCharX, gameCharY - 15);
-
+	quad(0, - 48,
+		+ 10, - 48,
+		+ 12, - 15,
+		0, - 15);
+	pop();
 }
 //the animation for when the player is facing the left and falling
-const leftFallingAnimation = () => {
+const leftFallingAnimation = (xPos, yPos, evil=false) => {
+	push();
+	translate(xPos, yPos);
 	noStroke();
 	strokeWeight(1);
 	fill(222, 184, 135);
-	ellipse(gameCharX, gameCharY - 40, 20, 20);
+	ellipse(0, - 40, 20, 20);
 	//eye whites 
 	fill(255);
-	ellipse(gameCharX - 4, gameCharY - 40, 5, 4);
+	ellipse(- 4, - 40, 5, 4);
 	// eye colour 
 	fill(96, 49, 1);
-	ellipse(gameCharX - 5, gameCharY - 40, 2, 2);
+	ellipse(- 5, - 40, 2, 2);
 	//lips 
 	fill(255, 0, 0, 150);
-	ellipse(gameCharX - 4, gameCharY - 34, 3, 2);
+	ellipse(- 4, - 34, 3, 2);
 	//top of hair
 	fill(0);
-	ellipse(gameCharX, gameCharY - 48, 20, 5);
+	ellipse(0, - 48, 20, 5);
 	//shoe colour
 	fill(255);
 	//left shoe
-	rect(gameCharX - 10, gameCharY, 6, 3);
+	rect(- 10, 0, 6, 3);
 	//right shoe
-	rect(gameCharX + 4, gameCharY, 6, 3);
+	rect(+ 4, 0, 6, 3);
 	//scrubs color
-	fill(91, 225, 229);
-	stroke(71, 205, 209);
+	fill(evil ? [220, 20, 20] : [91, 225, 229]);
+	stroke(evil ? [200, 0, 0] : [71, 205, 209]);
 	//right leg
-	quad(gameCharX + 4, gameCharY - 14,
-		gameCharX - 2, gameCharY - 10,
-		gameCharX + 3, gameCharY + 2,
-		gameCharX + 10, gameCharY - 1);
+	quad(+ 4, - 14,
+		- 2, - 10,
+		+ 3, + 2,
+		+ 10, - 1);
 	//left leg
-	quad(gameCharX - 4, gameCharY - 14,
-		gameCharX + 2, gameCharY - 10,
-		gameCharX - 3, gameCharY + 2,
-		gameCharX - 10, gameCharY - 1);
+	quad(- 4, - 14,
+		+ 2, - 10,
+		- 3, + 2,
+		- 10, - 1);
 	//torso
-	rect(gameCharX - 6, gameCharY - 30, 12, 20);
+	rect(- 6, - 30, 12, 20);
 	//back hair
 	noStroke();
 	fill(0);
-	quad(gameCharX + 3, gameCharY - 48,
-		gameCharX + 10, gameCharY - 48,
-		gameCharX + 12, gameCharY - 15,
-		gameCharX + 5, gameCharY - 15);
+	quad(+ 3, - 48,
+		+ 10, - 48,
+		+ 12, - 15,
+		+ 5, - 15);
 	//hand
 	fill(222, 184, 135);
-	rect(gameCharX - 1, gameCharY - 48, 5, 3);
+	rect(- 1, - 48, 5, 3);
 	//arm
-	fill(91, 225, 229);
-	stroke(71, 205, 209);
-	rect(gameCharX - 1, gameCharY - 45, 5, 18);
+	fill(evil ? [220, 20, 20] : [91, 225, 229]);
+	stroke(evil ? [200, 0, 0] : [71, 205, 209]);
+	rect(- 1, - 45, 5, 18);
 	noStroke();
+	pop()
 }
 //the animation for when the player is facing the right
-const rightAnimation = () => {
+const rightAnimation = (xPos, yPos, evil=false) => {
+	push();
+	translate(xPos, yPos);
 	noStroke();
 	strokeWeight(1);
 	//face w skin colour 
 	fill(222, 184, 135);
-	ellipse(gameCharX, gameCharY - 40, 20, 20);
+	ellipse(0, - 40, 20, 20);
 	//eye whites 
 	fill(255);
-	ellipse(gameCharX + 4, gameCharY - 40, 5, 4);
+	ellipse(+ 4, - 40, 5, 4);
 	// eye colour 
 	fill(96, 49, 1);
-	ellipse(gameCharX + 5, gameCharY - 40, 2, 2);
+	ellipse(+ 5, - 40, 2, 2);
 	//lips 
 	fill(255, 0, 0, 150)
-	ellipse(gameCharX + 4, gameCharY - 34, 3, 2);
+	ellipse(+ 4, - 34, 3, 2);
 	//top of hair
 	fill(0);
-	ellipse(gameCharX, gameCharY - 48, 20, 5);
+	ellipse(0, - 48, 20, 5);
 	//shoe colour
 	fill(255);
 	//left shoe
-	rect(gameCharX - 10, gameCharY, 6, 3);
+	rect(- 10, 0, 6, 3);
 	//right shoe
-	rect(gameCharX + 4, gameCharY, 6, 3);
+	rect(+ 4, 0, 6, 3);
 	//left hand
 	noStroke();
 	fill(222, 184, 135);
-	quad(gameCharX + 15, gameCharY - 18,
-		gameCharX + 13, gameCharY - 15,
-		gameCharX + 10, gameCharY - 18,
-		gameCharX + 12, gameCharY - 20);
+	quad(+ 15, - 18,
+		+ 13, - 15,
+		+ 10, - 18,
+		+ 12, - 20);
 	//right hand
-	quad(gameCharX - 15, gameCharY - 18,
-		gameCharX - 13, gameCharY - 15,
-		gameCharX - 10, gameCharY - 18,
-		gameCharX - 12, gameCharY - 20);
+	quad(- 15, - 18,
+		- 13, - 15,
+		- 10, - 18,
+		- 12, - 20);
 	//scrubs color
-	fill(91, 225, 229);
-	stroke(71, 205, 209);
+	fill(evil ? [220, 20, 20] : [91, 225, 229]);
+	stroke(evil ? [200, 0, 0] : [71, 205, 209]);
 	//right arm
-	quad(gameCharX, gameCharY - 30,
-		gameCharX + 3, gameCharY - 25,
-		gameCharX - 10, gameCharY - 16,
-		gameCharX - 13, gameCharY - 20);
+	quad(0, - 30,
+		+ 3, - 25,
+		- 10, - 16,
+		- 13, - 20);
 	//right leg
-	quad(gameCharX - 4, gameCharY - 14,
-		gameCharX + 2, gameCharY - 10,
-		gameCharX - 3, gameCharY + 2,
-		gameCharX - 10, gameCharY - 1);
+	quad(- 4, - 14,
+		+ 2, - 10,
+		- 3, + 2,
+		- 10, - 1);
 	//left leg
-	quad(gameCharX + 4, gameCharY - 14,
-		gameCharX - 2, gameCharY - 10,
-		gameCharX + 3, gameCharY + 2,
-		gameCharX + 10, gameCharY - 1);
+	quad(+ 4, - 14,
+		- 2, - 10,
+		+ 3, + 2,
+		+ 10, - 1);
 	//torso
-	rect(gameCharX - 6, gameCharY - 30, 12, 20);
+	rect(- 6, - 30, 12, 20);
 	//leftarm
-	quad(gameCharX, gameCharY - 30,
-		gameCharX - 3, gameCharY - 25,
-		gameCharX + 10, gameCharY - 16,
-		gameCharX + 13, gameCharY - 20);
+	quad(0, - 30,
+		- 3, - 25,
+		+ 10, - 16,
+		+ 13, - 20);
 	//back hair
 	noStroke();
 	fill(0);
-	quad(gameCharX, gameCharY - 48,
-		gameCharX - 10, gameCharY - 48,
-		gameCharX - 12, gameCharY - 15,
-		gameCharX, gameCharY - 15);
+	quad(0, - 48,
+		- 10, - 48,
+		- 12, - 15,
+		0, - 15);
+	pop()
 }
 //the animation for when the player is facing the right and falling
-const rightFallingAnimation = () => {
+const rightFallingAnimation = (xPos, yPos, evil=false) => {
+	push();
+	translate(xPos, yPos);
 	noStroke();
 	strokeWeight(1)
 	//face w skin colour 
 	fill(222, 184, 135);
-	ellipse(gameCharX, gameCharY - 40, 20, 20);
+	ellipse(0, - 40, 20, 20);
 	//eye whites 
 	fill(255);
-	ellipse(gameCharX + 4, gameCharY - 40, 5, 4);
+	ellipse(+ 4, - 40, 5, 4);
 	// eye colour 
 	fill(96, 49, 1);
-	ellipse(gameCharX + 5, gameCharY - 40, 2, 2);
+	ellipse(+ 5, - 40, 2, 2);
 	//lips 
 	fill(255, 0, 0, 150);
-	ellipse(gameCharX + 4, gameCharY - 34, 3, 2);
+	ellipse(+ 4, - 34, 3, 2);
 	//top of hair
 	fill(0);
-	ellipse(gameCharX, gameCharY - 48, 20, 5);
+	ellipse(0, - 48, 20, 5);
 	//shoe colour
 	fill(255);
 	//left shoe
-	rect(gameCharX - 10, gameCharY, 6, 3);
+	rect(- 10, 0, 6, 3);
 	//right shoe
-	rect(gameCharX + 4, gameCharY, 6, 3);
+	rect(+ 4, 0, 6, 3);
 	//scrubs color
-	fill(91, 225, 229);
-	stroke(71, 205, 209);
+	fill(evil ? [220, 20, 20] : [91, 225, 229]);
+	stroke(evil ? [200, 0, 0] : [71, 205, 209]);
 	//right leg
-	quad(gameCharX - 4, gameCharY - 14,
-		gameCharX + 2, gameCharY - 10,
-		gameCharX - 3, gameCharY + 2,
-		gameCharX - 10, gameCharY - 1)
+	quad(- 4, - 14,
+		+ 2, - 10,
+		- 3, + 2,
+		- 10, - 1)
 	//left leg
-	quad(gameCharX + 4, gameCharY - 14,
-		gameCharX - 2, gameCharY - 10,
-		gameCharX + 3, gameCharY + 2,
-		gameCharX + 10, gameCharY - 1);
+	quad(+ 4, - 14,
+		- 2, - 10,
+		+ 3, + 2,
+		+ 10, - 1);
 	//torso
-	rect(gameCharX - 6, gameCharY - 30, 12, 20);
+	rect(- 6, - 30, 12, 20);
 	//back hair
 	noStroke()
 	fill(0);
-	quad(gameCharX - 3, gameCharY - 48,
-		gameCharX - 10, gameCharY - 48,
-		gameCharX - 12, gameCharY - 15,
-		gameCharX - 5, gameCharY - 15);
+	quad(- 3, - 48,
+		- 10, - 48,
+		- 12, - 15,
+		- 5, - 15);
 	//hand
 	fill(222, 184, 135);
-	rect(gameCharX - 3, gameCharY - 48, 5, 3);
+	rect(- 3, - 48, 5, 3);
 	//arm
-	fill(91, 225, 229);
-	stroke(71, 205, 209);
-	rect(gameCharX - 3, gameCharY - 45, 5, 18);
+	fill(evil ? [220, 20, 20] : [91, 225, 229]);
+	stroke(evil ? [200, 0, 0] : [71, 205, 209]);
+	rect(- 3, - 45, 5, 18);
 	noStroke();
+	pop();
 }
 
 // Function to draw the game character.
 const drawGameChar = () => {
 		//if the user is clicking A(left) AND D(right)... We check if the user is falling or not and play the appropiate animation
-		if(isLeft && isRight) isFalling ? forwardFallingAnimation() : forwardAnimation();
+		if(isLeft && isRight) isFalling ? forwardFallingAnimation(gameCharX, gameCharY) : forwardAnimation(gameCharX, gameCharY);
 
 		//if the user clicks D(right) we check if the player is falling or not, and play the appropiate animation
-		else if(isRight) isFalling ? rightFallingAnimation() : rightAnimation();
+		else if(isRight) isFalling ? rightFallingAnimation(gameCharX, gameCharY) : rightAnimation(gameCharX, gameCharY);
 
 		//if the user clicks A(left) we check if the player is falling or not, and play the appropiate animation
-		else if(isLeft) isFalling ? leftFallingAnimation() : leftAnimation();
+		else if(isLeft) isFalling ? leftFallingAnimation(gameCharX, gameCharY) : leftAnimation(gameCharX, gameCharY);
 
 		//if the player is falling or is dead
-		else if(isFalling || isDead) forwardFallingAnimation();
+		else if(isFalling || isDead) forwardFallingAnimation(gameCharX, gameCharY);
 		
 		//else we play the forward animation
-		else forwardAnimation();
+		else forwardAnimation(gameCharX, gameCharY);
 
 }
 
@@ -1220,6 +1250,7 @@ const drawGameScore = () => {
 	text(`Level: ${currentLevel}`, 30, 70);
 	text(`Carrots: ${carrotScore}`, 30, 110);
 	text(`Dogs saved: ${dogScore}`, 30, 150);
+
 }
 //this function deals with altering the flagpole position when the player reaches it
 //in other words it moves the flagpole up and down
@@ -1337,7 +1368,7 @@ const checkFlagpole = () => {
 //the cool swirly animation that is present when the curtains close
 const funAnimation = () => {
 	//this is some somewhat complex math, but basically it draws little swirls...
-
+	noStroke()
 	//cos and sin can = anything between -1 and 1, therefore we multiply both by 50 so the circles are biggers
 	var cosX = cos(x) * 50;
 	var sinX = sin(x) * 50;
@@ -1456,6 +1487,7 @@ const funAnimation = () => {
 // This function closes the curtain 
 const levelCompleted = () => {
 	//draw top curtain
+	noStroke();
 	fill(101, 50, 50);
 	rect(0, curtainY - height / 2, width, height / 2);
 	//draw bottom currtain
@@ -1654,7 +1686,7 @@ const chooseDifficulty = () => {
 	text('Press P for peaceful mode (infinite lives)', 250, 250);
 	text('Press E for easy mode (10 lives)', 300, 300);
 	text('Press M for medium mode (5 lives)', 300, 350);
-	text('Press H for hard mode (1 life)', 300, 400);
+	text('Press S for speedrun mode (1 life)', 300, 400);
 }
 
 //our cool infinity sign when you pick infinite lives!
