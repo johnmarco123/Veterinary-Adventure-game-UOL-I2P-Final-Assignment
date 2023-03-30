@@ -55,7 +55,7 @@ const getGameState = () =>
             adder[i][0] = '[' + adder[i][0];
             adder[i][1] = adder[i][1] + ']';
         }
-        document.getElementById('yep').innerHTML = adder
+        document.getElementById('textBox').innerHTML = adder
         output = false;
     }
 }
