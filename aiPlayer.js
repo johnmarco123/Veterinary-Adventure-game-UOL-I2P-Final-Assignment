@@ -12,7 +12,6 @@ const getGameState = () =>
     }
     if(replay == true)
     {
-        console.log(currentCoords)
         let lastX, lastY;
         let thisX, thisY
         if(currentCoords + 1 < speedRunner[currentLevel].length)
