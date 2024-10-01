@@ -533,14 +533,14 @@ function keyPressed() {
 		//if the player isn't dead, allow movement keystrokes
 		if (!isDead) {
 			//keycode 65 = A
-			if (keyCode == 65) { isLeft = true; }
+			if (keyCode == 65 || keyCode == 37) { isLeft = true; }
 
 			//keycode 68 = D
-			if (keyCode == 68) { isRight = true; }
+			if (keyCode == 68 || keyCode == 39) { isRight = true; }
 
 			//if the user clicks W, and they aren't falling, and aren't jumping, we allow them to jump
-			//THIS CODE PREVENTS DOUBLE JUMP, VERY IMPORTANT!
-			if (keyCode == 87 && !isFalling && !isJumping) {
+			// THIS CODE PREVENTS DOUBLE JUMP, VERY IMPORTANT!
+			if ((keyCode == 87 || keyCode == 38) && !isFalling && !isJumping) {
 				//the jump noise, as long as sounds aren't off in the esc menu
 				if (!allSoundOff) {
 					jumpSound.play();
