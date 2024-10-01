@@ -585,12 +585,12 @@ function keyReleased() {
 	//if the user isn't dead (for bug fix purposes)
 	if (!isDead) {
 		//if they release 'A'
-		if (keyCode == 65) {
+		if (keyCode == 65 || keyCode == 37) {
 			//then they are no longer moving left
 			isLeft = false;
 		}
 		//if they release 'D'
-		if (keyCode == 68) {
+		if (keyCode == 68 || keyCode == 39) {
 			//then they are no longer moving right
 			isRight = false;
 		}
