@@ -532,6 +532,7 @@ function keyPressed() {
 		}
 		//if the player isn't dead, allow movement keystrokes
 		if (!isDead) {
+			console.log(keyCode);
 			//keycode 65 = A
 			if (keyCode == 65 || keyCode == 37) { isLeft = true; }
 
